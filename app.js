@@ -25,6 +25,7 @@ app.get('/register', (req, res) => {
 
 // フォーム送信処理（DBに保存）
 app.post('/register', async (req, res) => {
+  console.log('📩 受け取ったデータ:', req.body);
   try {
     const { username, email, password } = req.body;
 
