@@ -5,10 +5,34 @@
 </head>
 <body>
   <h1>新規登録フォーム</h1>
-  <form action="/register" method="POST">
+  <form action="/register" method="POST" enctype="multipart/form-data">
     <input type="text" name="username" placeholder="ユーザー名" required><br>
     <input type="email" name="email" placeholder="メールアドレス" required><br>
     <input type="password" name="password" placeholder="パスワード" required><br>
+
+ <!-- 英語レベル -->
+ <label>英語レベル（CEFR）:</label><br>
+ <select name="level" required>
+   <option value="A1">A1</option>
+   <option value="A2">A2</option>
+   <option value="B1">B1</option>
+   <option value="B2">B2</option>
+   <option value="C1">C1</option>
+   <option value="C2">C2</option>
+ </select><br>
+
+ <!-- 学習目的 -->
+ <label>英語学習の目的:</label><br>
+ <input type="text" name="purpose" placeholder="例: 海外旅行・仕事・試験対策"><br>
+
+ <!-- 趣味（複数選択可） -->
+ <label>趣味（複数選択可）:</label><br>
+ <input type="text" name="hobbies" placeholder="例: 音楽鑑賞、旅行、読書など"><br>
+
+ <!-- プロフィール画像（選択式） -->
+ <label>プロフィール画像をアップロード:</label><br>
+<input type="file" name="avatar" accept="image/*"><br>
+
     <button type="submit">登録する</button>
   </form>
 </body>

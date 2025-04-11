@@ -4,7 +4,11 @@ const bcrypt = require('bcryptjs');
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   email:    { type: String, required: true, unique: true },
-  password: { type: String, required: true }
+  password: { type: String, required: true },
+  level:     { type: String, enum: ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'], default: 'A1' },
+  purpose:   { type: String }, // 例: "旅行", "ビジネス", "試験対策"
+  hobbies:   { type: [String] }, // 配列として複数登録もOK
+  avatar:    { type: String } // アバター画像のファイル名 or URL
 });
 
 
