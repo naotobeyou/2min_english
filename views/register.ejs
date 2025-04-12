@@ -6,9 +6,14 @@
 <body>
   <h1>新規登録フォーム</h1>
   <form action="/register" method="POST" enctype="multipart/form-data">
-    <input type="text" name="username" placeholder="ユーザー名" required><br>
+    <!-- ユーザー名（必須・3文字以上） -->
+    <input type="text" name="username" placeholder="ユーザー名" required minlength="3"><br>
+  
+    <!-- メールアドレス（必須） -->
     <input type="email" name="email" placeholder="メールアドレス" required><br>
-    <input type="password" name="password" placeholder="パスワード" required><br>
+  
+    <!-- パスワード（必須・6文字以上） -->
+    <input type="password" name="password" placeholder="パスワード" required minlength="6"><br>
 
  <!-- 英語レベル -->
  <label>英語レベル（CEFR）:</label><br>
@@ -21,19 +26,20 @@
    <option value="C2">C2</option>
  </select><br>
 
- <!-- 学習目的 -->
  <label>英語学習の目的:</label><br>
- <input type="text" name="purpose" placeholder="例: 海外旅行・仕事・試験対策"><br>
+ <input type="text" name="purpose" placeholder="例: 海外旅行・仕事・試験対策" maxlength="100"><br>
 
- <!-- 趣味（複数選択可） -->
- <label>趣味（複数選択可）:</label><br>
- <input type="text" name="hobbies" placeholder="例: 音楽鑑賞、旅行、読書など"><br>
+ <!-- 趣味 -->
+ <label>趣味:</label><br>
+ <input type="text" name="hobbies" placeholder="例: 音楽鑑賞、旅行、読書など" maxlength="50"><br>
 
- <!-- プロフィール画像（選択式） -->
+ <!-- プロフィール画像 -->
  <label>プロフィール画像をアップロード:</label><br>
-<input type="file" name="avatar" accept="image/*"><br>
+ <input type="file" name="avatar" accept="image/*"><br>
+
 
     <button type="submit">登録する</button>
+    <p>すでにアカウントをお持ちですか？ <a href="/login">こちらからログイン</a></p>
   </form>
 </body>
 </html>

@@ -58,6 +58,23 @@ app.post('/register', upload.single('avatar'), async (req, res) => {
     const avatar = req.file ? req.file.filename : 'default.png';
 
 
+    if (!username || username.length < 3) {
+      return res.send('<script>alert("ユーザー名は3文字以上で入力してください"); history.back();</script>');
+    }
+    
+    if (!password || password.length < 6) {
+      return res.send('<script>alert("パスワードは6文字以上で入力してください"); history.back();</script>');
+    }
+    
+    if (!email || !email.includes('@')) {
+      return res.send('<script>alert("正しいメールアドレスを入力してください"); history.back();</script>');
+    }
+    
+    if (!level) {
+      return res.send('<script>alert("英語レベルを選択してください"); history.back();</script>');
+    }
+
+
      // 事前に同じユーザーが存在するかチェック
     const existingUser = await User.findOne({
       $or: [{ username }, { email }]
@@ -189,6 +206,116 @@ app.get('/logout', (req, res) => {
     res.redirect('/register');
   });
 });
+
+
+//プロフィール編集
+app.get('/edit-profile', async (req, res) => {
+  if (!req.session.userId) {
+    return res.redirect('/login');
+  }
+
+  const user = await User.findById(req.session.userId);
+  if (!user) return res.send('ユーザーが見つかりません');
+
+  res.render('edit-profile', { user });
+});
+
+app.post('/edit-profile', upload.single('avatar'), async (req, res) => {
+  if (!req.session.userId) return res.redirect('/login');
+
+  const { username, hobbies, purpose, currentPassword, newPassword } = req.body;
+
+  if (!username || username.length < 3) {
+    return res.send('<script>alert("ユーザー名は3文字以上で入力してください"); history.back();</script>');
+  }
+
+  if (hobbies && hobbies.length > 50) {
+    return res.send('<script>alert("趣味は50文字以内で入力してください"); history.back();</script>');
+  }
+
+  if (purpose && purpose.length > 100) {
+    return res.send('<script>alert("学習目的は100文字以内で入力してください"); history.back();</script>');
+  }
+
+  if (newPassword && newPassword.length < 6) {
+    return res.send('<script>alert("新しいパスワードは6文字以上にしてください"); history.back();</script>');
+  }
+
+  try {
+    const avatar = req.file ? req.file.filename : undefined;
+
+    const updateData = { username, hobbies, purpose };
+    if (avatar) updateData.avatar = avatar;
+
+    const user = await User.findById(req.session.userId);
+
+    if (currentPassword && newPassword) {
+      const isMatch = await bcrypt.compare(currentPassword, user.password);
+      if (!isMatch) {
+        return res.send('<script>alert("現在のパスワードが間違っています"); history.back();</script>');
+      }
+      user.password = newPassword;
+    }
+
+    Object.assign(user, updateData);
+    await user.save();
+
+    res.redirect('/dashboard');
+  } catch (err) {
+    console.error('❌ プロフィール更新エラー:', err);
+    res.status(500).send('プロフィール更新失敗');
+  }
+});
+
+//マッチング機能
+const MatchingEntry = require('./models/MatchingEntry');
+
+// マッチング待機画面
+app.get('/matching-wait', async (req, res) => {
+  if (!req.session.userId) return res.redirect('/login');
+
+  const me = await User.findById(req.session.userId);
+  if (!me) return res.send('ユーザーが見つかりません');
+
+  // すでに待機中か確認
+  const exists = await MatchingEntry.findOne({ userId: me._id });
+  if (!exists) {
+    await MatchingEntry.create({
+      userId: me._id,
+      level: me.level,
+      hobbies: me.hobbies
+    });
+  }
+
+  // 他のユーザーを探す
+  const others = await MatchingEntry.find({ userId: { $ne: me._id } });
+
+  let match = others.find(u => u.level === me.level && u.hobbies === me.hobbies);
+  if (!match) match = others.find(u => u.level === me.level);
+  if (!match) match = others.find(u => u.hobbies === me.hobbies);
+  if (!match && others.length > 0) match = others[0];
+
+  if (match) {
+    // マッチ成立 → ルームIDを生成（ここでは仮）
+    const roomId = `${me._id}-${match.userId}`;
+    
+    // 自分と相手をキューから削除
+    await MatchingEntry.deleteMany({ userId: { $in: [me._id, match.userId] } });
+
+    // お互いに通話ページにリダイレクト（ここでは仮に自分だけ）
+    return res.redirect(`/call/${roomId}`);
+  }
+
+  // マッチ相手がいなければ待機画面表示
+  res.render('matching-wait');
+});
+
+
+app.get('/call/:roomId', (req, res) => {
+  const { roomId } = req.params;
+  res.send(`<h1>仮の通話ページ：${roomId}</h1><p>ここにWebRTCを後で組み込みます！</p>`);
+});
+
 
 // サーバー起動
 app.listen(3000, () => {

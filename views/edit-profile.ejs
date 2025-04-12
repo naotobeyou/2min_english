@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>プロフィール編集</title>
+</head>
+<body>
+  <h1>プロフィール編集</h1>
+  <form action="/edit-profile" method="POST" enctype="multipart/form-data">
+    <input type="text" name="username" value="<%= user.username %>" required minlength="3"><br>
+    <input type="text" name="hobbies" value="<%= user.hobbies %>" maxlength="200"> <br>
+    <input type="text" name="purpose" value="<%= user.purpose %>" maxlength="100"> <br>
+    <input type="password" name="currentPassword" placeholder="現在のパスワード"><br>
+    <input type="password" name="newPassword" placeholder="新しいパスワード"><br>
+
+    <p>現在の画像:</p>
+    <img src="/uploads/<%= user.avatar %>" alt="現在の画像" width="100"><br>
+
+    <label>画像変更（任意）:</label>
+    <input type="file" name="avatar" accept="image/*"><br>
+
+    <button type="submit">更新する</button>
+  </form>
+
+  <p><a href="/dashboard">← ダッシュボードに戻る</a></p>
+</body>
+</html>
