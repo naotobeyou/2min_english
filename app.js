@@ -38,12 +38,38 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 
+
+
 // フォーム送信処理（DBに保存）
 app.post('/register', upload.single('avatar'), async (req, res) => {
   console.log('📩 受け取ったデータ:', req.body);
   try {
     const { username, email, password, level, purpose, hobbies } = req.body;
     const avatar = req.file ? req.file.filename : 'default.png';
+
+
+     // 事前に同じユーザーが存在するかチェック
+    const existingUser = await User.findOne({
+      $or: [{ username }, { email }]
+    });
+    
+    if (existingUser) {
+      if (existingUser.username === username) {
+        return res.send(`
+          <script>
+            alert("⚠️ このユーザー名はすでに使われています！");
+            history.back();
+          </script>
+        `);
+      } else if (existingUser.email === email) {
+        return res.send(`
+          <script>
+            alert("⚠️ このメールアドレスはすでに登録されています！");
+            history.back();
+          </script>
+        `);
+      }
+    }
 
     const user = new User({ 
       username, 
@@ -57,19 +83,19 @@ app.post('/register', upload.single('avatar'), async (req, res) => {
     await user.save();
 
     console.log('保存されたユーザー:', user); // ここで確認！
-    res.send('登録完了！');
+    res.redirect('/dashboard');
   } catch (err) {
     console.error('❌ エラー内容:', JSON.stringify(err, null, 2));
   
     if (err.code === 11000) {
-      if (err.keyPattern.username) {
+      if (err.keyPattern?.username || err.keyValue?.username) {
         return res.send(`
           <script>
             alert("⚠️ このユーザー名はすでに使われています！");
             history.back();
           </script>
         `);
-      } else if (err.keyPattern.email) {
+      } else if (err.keyPattern?.email || err.keyValue?.email) {
         return res.send(`
           <script>
             alert("⚠️ このメールアドレスはすでに登録されています！");
@@ -79,7 +105,7 @@ app.post('/register', upload.single('avatar'), async (req, res) => {
       } else {
         return res.send(`
           <script>
-            alert("⚠️ 登録情報に重複があります");
+            alert("⚠️ 登録情報に重複があります！");
             history.back();
           </script>
         `);
@@ -91,7 +117,14 @@ app.post('/register', upload.single('avatar'), async (req, res) => {
 });
 
 
+app.get('/dashboard', async (req, res) => {
+  // ★ 仮に「最初のユーザー」を取得（ログイン機能はまだ）
+  const user = await User.findOne(); // 今は1人目のユーザーを使うだけ！
 
+  if (!user) return res.send('ユーザーが見つかりません');
+
+  res.render('dashboard', { user });
+});
 
 // サーバー起動
 app.listen(3000, () => {
