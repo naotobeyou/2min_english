@@ -83,7 +83,10 @@ app.post('/register', upload.single('avatar'), async (req, res) => {
     await user.save();
 
     console.log('保存されたユーザー:', user); // ここで確認！
-    res.redirect('/dashboard');
+    res.render('dashboard', { user }); 
+
+
+
   } catch (err) {
     console.error('❌ エラー内容:', JSON.stringify(err, null, 2));
   
