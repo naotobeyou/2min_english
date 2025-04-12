@@ -310,7 +310,14 @@ app.get('/matching-wait', async (req, res) => {
   res.render('matching-wait');
 });
 
+//マッチングキャンセル
+app.post('/cancel-matching', async (req, res) => {
+  if (!req.session.userId) return res.redirect('/login');
+  await MatchingEntry.deleteOne({ userId: req.session.userId });
+  res.redirect('/dashboard');
+});
 
+//マッチング成立時
 app.get('/call/:roomId', (req, res) => {
   const { roomId } = req.params;
   res.send(`<h1>仮の通話ページ：${roomId}</h1><p>ここにWebRTCを後で組み込みます！</p>`);
