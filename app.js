@@ -2,9 +2,18 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
 const multer = require('multer');
+const session = require('express-session');
 require('dotenv').config();
 
 const app = express();
+
+app.use(session({
+  secret: 'your-secret-key',
+  resave: false,
+  saveUninitialized: false
+}));
+
+
 
 // ミドルウェア設定
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -18,6 +27,7 @@ mongoose.connect(process.env.MONGODB_URI)
 
 // モデル読み込み
 const User = require('./models/User');
+
 
 // 新規登録ページ表示
 app.get('/register', (req, res) => {
@@ -119,14 +129,65 @@ app.post('/register', upload.single('avatar'), async (req, res) => {
   }
 });
 
-
+//ダッシュボードget
 app.get('/dashboard', async (req, res) => {
-  // ★ 仮に「最初のユーザー」を取得（ログイン機能はまだ）
-  const user = await User.findOne(); // 今は1人目のユーザーを使うだけ！
+  if (!req.session.userId) {
+    return res.redirect('/login');
+  }
 
+  const user = await User.findById(req.session.userId);
   if (!user) return res.send('ユーザーが見つかりません');
 
   res.render('dashboard', { user });
+});
+
+
+//ログインget
+app.get('/login', (req, res) => {
+  res.render('login');
+});
+
+const bcrypt = require('bcryptjs'); // 念のため再確認！
+
+app.post('/login', async (req, res) => {
+  const { username, password } = req.body;
+
+  try {
+    const user = await User.findOne({ username });
+
+    if (!user) {
+      return res.send('<script>alert("ユーザーが見つかりません");history.back();</script>');
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+
+    if (!isMatch) {
+      return res.send('<script>alert("パスワードが間違っています");history.back();</script>');
+    }
+
+    // ログイン成功時
+    req.session.userId = user._id;
+    console.log('🧠 セッションの中身:', req.session);
+    res.redirect('/dashboard');
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('ログインエラー');
+  }
+});
+
+
+//ログアウト
+
+app.get('/logout', (req, res) => {
+  req.session.destroy(err => {
+    if (err) {
+      console.error('ログアウトエラー:', err);
+      return res.status(500).send('ログアウトできませんでした');
+    }
+    // 🔁 ログアウト後に /register にリダイレクト！
+    res.redirect('/register');
+  });
 });
 
 // サーバー起動
