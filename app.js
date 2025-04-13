@@ -5,7 +5,6 @@ const multer = require('multer');
 const session = require('express-session');
 const bcrypt = require('bcryptjs'); 
 const CallHistory = require('./models/CallHistory');
-
 require('dotenv').config();
 
 const app = express();
@@ -285,6 +284,19 @@ app.post('/edit-profile', upload.single('avatar'), async (req, res) => {
 });
 
 
+app.get('/history', async (req, res) => {
+  if (!req.session.userId) return res.redirect('/login');
+
+  const myId = req.session.userId;
+
+  const histories = await CallHistory.find({ userId: myId })
+    .sort({ createdAt: -1 })
+    .populate('partnerId');
+
+  res.render('history', { histories });
+});
+
+
 
 // マッチング待機画面
 app.get('/matching-wait', async (req, res) => {
@@ -354,7 +366,7 @@ app.get('/call/:roomId', async (req, res) => {
 });
 
 
-
+//メモ・履歴保存
 app.post('/save-note', async (req, res) => {
   if (!req.session.userId) return res.redirect('/login');
 

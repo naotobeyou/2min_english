@@ -13,19 +13,9 @@
   <p><strong>趣味:</strong> <%= user.hobbies %></p>
   <p><strong>学習目的:</strong> <%= user.purpose %></p>
 
-  <h2>📚 通話履歴</h2>
-    <% if (histories.length === 0) { %>
-    <p>通話履歴はまだありません。</p>
-    <% } else { %>
-    <ul>
-        <% histories.forEach(history => { %>
-        <li>
-            <strong><%= history.partnerId.username %></strong>（<%= history.createdAt.toLocaleString() %>）<br>
-            <em><%= history.note %></em>
-        </li>
-        <% }) %>
-    </ul>
-    <% } %>
+  <a href="/history" style="display: inline-block; margin-top: 10px; padding: 10px 15px; background-color: #007BFF; color: white; border-radius: 5px; text-decoration: none;">
+    📜 メモ履歴を確認する
+  </a>
 
   <p><a href="/edit-profile">プロフィールを編集する</a></p>
   <form action="/matching-wait" method="GET" style="display:inline;">
