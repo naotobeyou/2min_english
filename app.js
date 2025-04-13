@@ -421,6 +421,14 @@ io.on('connection', (socket) => {
     socket.to(roomId).emit('ice-candidate', candidate);
   });
 
+  socket.on('request-extension', (roomId) => {
+    socket.to(roomId).emit('extension-requested');
+  });
+  
+  socket.on('approve-extension', (roomId) => {
+    io.to(roomId).emit('extension-approved');
+  });
+
   socket.on('force-end', (roomId) => {
     socket.to(roomId).emit('force-end'); // 相手にだけ通知
   });

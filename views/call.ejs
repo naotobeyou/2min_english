@@ -17,13 +17,16 @@
       <input type="hidden" name="roomId" value="<%= roomId %>">
       <input type="hidden" name="partnerId" value="<%= partner._id %>">
       <button type="submit">メモを保存する</button>
-      
     </form>
     <button id="skipNoteBtn" style="margin-top: 10px;">メモを残さず終了</button>
   </div>
 
-  <div id="timer" style="font-size: 24px; margin-bottom: 10px; color: green;">02:00</div>
 
+  <div id="timer" style="font-size: 24px; margin-bottom: 10px; color: green;">02:00</div>
+  <p id="extensionInfo">延長可能回数: 2回</p>
+  <p>延長は残り30秒で相手にリクエスト可能になります！</p>
+  <button id="extendBtn" style="display: none;">延長する</button>
+ 
   <h2>相手のプロフィール</h2>
 
   <img src="/uploads/<%= partner.avatar || 'default.png' %>" alt="プロフィール画像" style="width: 120px; height: 120px; border-radius: 50%; border: 2px solid #ccc; margin-bottom: 10px;">
@@ -60,10 +63,15 @@
     const timerDisplay = document.getElementById('timer');
     const noteSection = document.getElementById('noteSection');
     const statusEl = document.getElementById('status');
+    const extendBtn = document.getElementById('extendBtn');
+
   
     let remaining = 120;
     let timerInterval;
+    
   
+  
+    
     function endCall() {
       
       // 表示を非表示に
@@ -94,9 +102,13 @@
         const sec = String(remaining % 60).padStart(2, '0');
         timerDisplay.textContent = `${min}:${sec}`;
   
-        if (remaining <= 30) {
-          timerDisplay.style.color = "red";
-        }
+        if (remaining === 30 && extensionCount < 2) {
+            timerDisplay.style.color = "red";
+            extendBtn.style.display = 'inline-block';
+            extendBtn.disabled = false;
+            extendBtn.textContent = '延長する';
+            }
+
   
         if (remaining <= 0) {
           clearInterval(timerInterval);
@@ -172,11 +184,117 @@
         console.error("❌ マイク取得エラー:", err);
       });
 
+
+
+   
+
+        // 延長処理（60秒追加）
+        let extensionCount = 0; // ← 追加（合計延長回数を管理）
+        let isExtending = false;
+
+        function extendCall() {
+            if (isExtending || extensionCount >= 2) return;
+
+            isExtending = true;
+            console.log("🟩 extendCall() 実行！ 現在の extensionCount:", extensionCount);
+
+            extensionCount++;
+            remaining += 60;
+
+            // extensionCount が 2 に達したときだけ非表示にする
+            if (extensionCount >= 2) {
+                extendBtn.style.display = 'none';
+            } else {
+                extendBtn.style.display = 'inline-block';
+                extendBtn.disabled = true;
+                extendBtn.textContent = '相手の同意を待っています...';
+            }
+
+
+            statusEl.textContent = '✅ 通話が1分延長されました';
+            statusEl.style.color = 'green';
+
+            updateExtensionInfo(); // 🔄 残り回数の表示を更新
+
+            extensionRequested = false;
+            extensionReceived = false;
+
+            setTimeout(() => {
+                isExtending = false;
+            }, 100);
+        }
+
       document.getElementById('skipNoteBtn').addEventListener('click', () => {
         if (confirm("メモを残さず終了しますか？")) {
             window.location.href = '/dashboard';
         }
         });
+
+          //延長機能
+        let extensionAgreed = false;
+        let partnerAgreed = false;
+
+
+
+        let extensionRequested = false;
+        let extensionReceived = false;
+
+        extendBtn.addEventListener('click', () => {
+            if (extensionCount >= 2) return;
+
+            // 🧹 ここで毎回初期化（大事！）
+            extensionRequested = true;
+            extensionReceived = false;
+
+            extendBtn.disabled = true;
+            extendBtn.textContent = '相手の同意を待っています...';
+
+            socket.emit('request-extension', roomId);
+
+        if (extensionReceived) {
+            socket.emit('approve-extension', roomId); // 両方押したのでOK通知
+            extendCall();
+        }
+        });
+
+        // 相手から延長リクエストが届いた時
+        socket.on('extension-requested', () => {
+        extensionReceived = true;
+
+        if (extensionRequested) {
+            socket.emit('approve-extension', roomId);
+        } else {
+            if (extensionCount < 2) {
+            extendBtn.style.display = 'inline-block';
+            extendBtn.disabled = false;
+            extendBtn.textContent = '通話相手が延長を希望しています';
+            }
+        }
+        });
+
+        let extensionApprovals = 0;
+
+        socket.on('extension-approved', () => {
+        if (extensionApprovals >= extensionCount + 1) return;
+
+        console.log("📥 extension-approved 受信！ extensionApprovals:", extensionApprovals, "extensionCount:", extensionCount);
+        
+        extensionApprovals++;
+        extendCall();
+        });
+
+
+         // 延長回数表示（最大2回まで）
+        function updateExtensionInfo() {
+        const remaining = 2 - extensionCount;
+        document.getElementById('extensionInfo').textContent = `延長可能回数: ${remaining}回`;
+        }
+
+        // 初期表示
+        updateExtensionInfo();
+
+
+
   </script>
   
 </body>
