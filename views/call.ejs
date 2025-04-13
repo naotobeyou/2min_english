@@ -1,0 +1,61 @@
+<!-- views/call.ejs -->
+<!DOCTYPE html>
+<html>
+<head>
+  <title>音声通話</title>
+</head>
+<body>
+  <h1>通話ルーム: <%= roomId %></h1>
+  <p>音声通話を準備中...</p>
+
+  <audio id="remoteAudio" autoplay></audio>
+  <script src="/socket.io/socket.io.js"></script>
+
+
+<script>
+  const socket = io();
+  const roomId = "<%= roomId %>";
+  const peer = new RTCPeerConnection();
+
+  navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+    stream.getTracks().forEach(track => peer.addTrack(track, stream));
+
+    peer.ontrack = (event) => {
+      document.getElementById('remoteAudio').srcObject = event.streams[0];
+    };
+
+    socket.emit('join-room', roomId);
+
+    socket.on('ready', async () => {
+      const offer = await peer.createOffer();
+      await peer.setLocalDescription(offer);
+      socket.emit('offer', roomId, offer);
+    });
+
+    socket.on('offer', async (offer) => {
+      await peer.setRemoteDescription(offer);
+      const answer = await peer.createAnswer();
+      await peer.setLocalDescription(answer);
+      socket.emit('answer', roomId, answer);
+    });
+
+    socket.on('answer', async (answer) => {
+      await peer.setRemoteDescription(answer);
+    });
+
+    socket.on('ice-candidate', async (candidate) => {
+      if (candidate) {
+        await peer.addIceCandidate(candidate);
+      }
+    });
+
+    peer.onicecandidate = (event) => {
+      if (event.candidate) {
+        socket.emit('ice-candidate', roomId, event.candidate);
+      }
+    };
+  });
+</script>
+
+</body>
+</html>

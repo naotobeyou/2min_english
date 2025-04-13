@@ -66,8 +66,9 @@ app.post('/register', upload.single('avatar'), async (req, res) => {
       return res.send('<script>alert("パスワードは6文字以上で入力してください"); history.back();</script>');
     }
     
-    if (!email || !email.includes('@')) {
-      return res.send('<script>alert("正しいメールアドレスを入力してください"); history.back();</script>');
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!email || !emailRegex.test(email)) {
+    return res.send('<script>alert("正しいメールアドレスを入力してください"); history.back();</script>');
     }
     
     if (!level) {
@@ -101,7 +102,7 @@ app.post('/register', upload.single('avatar'), async (req, res) => {
     const user = new User({ 
       username, 
       email, 
-      password,
+      password: hashedPassword,
       level,
       purpose,
       hobbies,
@@ -167,10 +168,10 @@ app.get('/login', (req, res) => {
 const bcrypt = require('bcryptjs'); // 念のため再確認！
 
 app.post('/login', async (req, res) => {
-  const { username, password } = req.body;
+  const { email, password } = req.body;
 
   try {
-    const user = await User.findOne({ username });
+    const user = await User.findOne({ email });
 
     if (!user) {
       return res.send('<script>alert("ユーザーが見つかりません");history.back();</script>');
@@ -319,13 +320,45 @@ app.post('/cancel-matching', async (req, res) => {
 
 //マッチング成立時
 app.get('/call/:roomId', (req, res) => {
-  const { roomId } = req.params;
-  res.send(`<h1>仮の通話ページ：${roomId}</h1><p>ここにWebRTCを後で組み込みます！</p>`);
+  res.render('call', { roomId: req.params.roomId });
 });
 
+//Socket.IO サーバー設定
+const server = require('http').createServer(app);
+const { Server } = require('socket.io');
+const io = new Server(server);
 
-// サーバー起動
-app.listen(3000, () => {
+// WebRTC用ルーム制御
+
+io.on('connection', (socket) => {
+  socket.on('join-room', (roomId) => {
+    socket.join(roomId);
+    const room = io.sockets.adapter.rooms.get(roomId);
+
+    if (room && room.size === 2) {
+      socket.to(roomId).emit('ready');
+    }
+
+    
+    socket.on('offer', (roomId, offer) => {
+      socket.to(roomId).emit('offer', offer);
+    });
+
+    socket.on('answer', (roomId, answer) => {
+      socket.to(roomId).emit('answer', answer);
+    });
+
+    socket.on('ice-candidate', (roomId, candidate) => {
+      socket.to(roomId).emit('ice-candidate', candidate);
+    });
+  });
+});
+
+// ⭐ 通話ページ（仮）は /call/:roomId に設置済みでOK
+
+// 💡 最後の server.listen に変更
+server.listen(3000, () => {
   console.log('http://localhost:3000 でサーバー起動中');
 });
+
 
