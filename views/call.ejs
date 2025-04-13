@@ -1,4 +1,3 @@
-<!-- views/call.ejs -->
 <!DOCTYPE html>
 <html>
 <head>
@@ -7,32 +6,71 @@
 </head>
 <body>
   <h1>通話ルーム: <%= roomId %></h1>
-  <p>音声通話を準備中...</p>
+  <p id="status">音声通話を準備中...</p>
+
+  <div id="timer" style="font-size: 24px; margin-bottom: 10px; color: green;">02:00</div>
+
+  <!-- 終了ボタン -->
+  <button id="endCallBtn" disabled style="padding: 10px 20px; background-color: crimson; color: white; border: none; border-radius: 5px; font-size: 16px;">
+    通話を終了する
+  </button>
 
   <!-- 音声出力 -->
   <audio id="remoteAudio" autoplay></audio>
 
-  <!-- Socket.IOクライアントの読み込み -->
   <script src="/socket.io/socket.io.js"></script>
 
-  <!-- JavaScript 本体 -->
   <script>
     console.log("📲 JavaScript が実行されています");
 
     const socket = io();
     const roomId = "<%= roomId %>";
     const userId = "<%= user._id %>";
+
     socket.emit('join-waiting', userId);
+
     const peer = new RTCPeerConnection({
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' }
       ]
     });
 
+    const endCallBtn = document.getElementById('endCallBtn');
+    const timerDisplay = document.getElementById('timer');
+    let remaining = 120;
+    let timerInterval;
+
+    // 終了ボタンのクリックイベント
+    endCallBtn.addEventListener('click', () => {
+      alert("通話を終了します");
+      window.location.href = "/dashboard";
+    });
+
+    // タイマー開始
+    const startTimer = () => {
+      timerInterval = setInterval(() => {
+        const min = String(Math.floor(remaining / 60)).padStart(2, '0');
+        const sec = String(remaining % 60).padStart(2, '0');
+        timerDisplay.textContent = `${min}:${sec}`;
+
+        if (remaining <= 30) {
+          timerDisplay.style.color = "red";
+        }
+
+        if (remaining <= 0) {
+          clearInterval(timerInterval);
+          alert("通話時間が終了しました");
+          window.location.href = "/dashboard";
+        }
+
+        remaining--;
+      }, 1000);
+    };
+
     socket.on('matched', (roomId) => {
-    console.log("🔁 matched イベント受信 → /call にリダイレクト");
-    window.location.href = `/call/${roomId}`;
-  });
+      console.log("🔁 matched イベント受信 → /call にリダイレクト");
+      window.location.href = `/call/${roomId}`;
+    });
 
     socket.on('connect', () => {
       console.log("✅ ソケット接続OK！", socket.id);
@@ -47,6 +85,16 @@
         peer.ontrack = (event) => {
           console.log("🎧 相手の音声トラックが来た！");
           document.getElementById('remoteAudio').srcObject = event.streams[0];
+
+          const statusEl = document.getElementById('status');
+          if (statusEl) {
+            statusEl.textContent = '✅ 通話が始まりました！';
+            statusEl.style.color = 'green';
+            statusEl.style.fontWeight = 'bold';
+          }
+
+          endCallBtn.disabled = false;
+          startTimer();
         };
 
         socket.emit('join-room', roomId);
