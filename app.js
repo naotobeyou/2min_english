@@ -345,32 +345,32 @@ app.get('/call/:roomId', async (req, res) => {
 
 io.on('connection', (socket) => {
 
+  // ソケットIDとユーザーIDを紐づけ
   socket.on('join-waiting', (userId) => {
     console.log(`📡 ユーザー ${userId} が waiting に参加（socket: ${socket.id}）`);
     userSockets.set(userId, socket.id);
   });
 
-
+  // 部屋に参加
   socket.on('join-room', (roomId) => {
     socket.join(roomId);
     const room = io.sockets.adapter.rooms.get(roomId);
     if (room && room.size === 2) {
       socket.to(roomId).emit('ready');
     }
-  
+  });
 
-    
-    socket.on('offer', (roomId, offer) => {
-      socket.to(roomId).emit('offer', offer);
-    });
+  // WebRTC シグナリング関連
+  socket.on('offer', (roomId, offer) => {
+    socket.to(roomId).emit('offer', offer);
+  });
 
-    socket.on('answer', (roomId, answer) => {
-      socket.to(roomId).emit('answer', answer);
-    });
+  socket.on('answer', (roomId, answer) => {
+    socket.to(roomId).emit('answer', answer);
+  });
 
-    socket.on('ice-candidate', (roomId, candidate) => {
-      socket.to(roomId).emit('ice-candidate', candidate);
-    });
+  socket.on('ice-candidate', (roomId, candidate) => {
+    socket.to(roomId).emit('ice-candidate', candidate);
   });
 });
 

@@ -4,6 +4,15 @@
   <meta charset="UTF-8">
   <title>音声通話</title>
 </head>
+
+<!-- メモ入力欄（初期状態は非表示） -->
+<div id="noteSection" style="display: none; margin-top: 20px;">
+    <h3>通話の振り返りメモ</h3>
+    <textarea id="noteText" rows="5" cols="50" placeholder="気づきや改善点などを書いてね！"></textarea><br>
+    <button id="saveNoteBtn">メモを保存する</button>
+  </div>
+
+
 <body>
   <h1>通話ルーム: <%= roomId %></h1>
   <p id="status">音声通話を準備中...</p>
@@ -42,9 +51,33 @@
 
     // 終了ボタンのクリックイベント
     endCallBtn.addEventListener('click', () => {
-      alert("通話を終了します");
-      window.location.href = "/dashboard";
-    });
+  // 音声トラックを停止
+  peer.getSenders().forEach(sender => {
+    if (sender.track) {
+      sender.track.stop();
+    }
+  });
+
+  // タイマー停止
+  clearInterval(timerInterval);
+
+  // ボタン非表示
+  endCallBtn.style.display = 'none';
+
+  // メモフォーム表示
+  const noteForm = document.createElement('form');
+  noteForm.method = 'POST';
+  noteForm.action = '/save-note';
+
+  noteForm.innerHTML = `
+    <h3>反省メモを残そう</h3>
+    <textarea name="note" rows="5" cols="50" placeholder="今日の気づきや反省点など..."></textarea>
+    <input type="hidden" name="roomId" value="${roomId}">
+    <button type="submit">保存</button>
+  `;
+
+  document.body.appendChild(noteForm);
+});
 
     // タイマー開始
     const startTimer = () => {
@@ -59,8 +92,25 @@
 
         if (remaining <= 0) {
           clearInterval(timerInterval);
-          alert("通話時間が終了しました");
-          window.location.href = "/dashboard";
+
+          // マイク停止（音声送信停止）
+            peer.getSenders().forEach(sender => {
+                if (sender.track) sender.track.stop();
+            });
+
+            endCallBtn.style.display = 'none'; // 終了ボタンを非表示
+            document.getElementById('status').textContent = '📝 通話時間が終了しました。メモを残しましょう！';
+            document.getElementById('status').style.color = 'black';
+
+            // メモ欄を表示
+            document.getElementById('noteSection').style.display = 'block';
+
+            return;
+            
+           //メモを残さずに終了したい場合に必要になるかも 
+          //alert("通話時間が終了しました");
+          //window.location.href = "/dashboard";
+
         }
 
         remaining--;
