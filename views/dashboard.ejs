@@ -14,7 +14,9 @@
   <p><strong>学習目的:</strong> <%= user.purpose %></p>
 
   <p><a href="/edit-profile">プロフィールを編集する</a></p>
-  <button onclick="alert('※マッチング機能も準備中！')">マッチング開始</button>
+  <form action="/matching-wait" method="GET" style="display:inline;">
+    <button type="submit">マッチング開始</button>
+  </form>
   <a href="/logout">ログアウト</a>
 </body>
 </html>
