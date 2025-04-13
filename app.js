@@ -4,6 +4,7 @@ const mongoose = require('mongoose');
 const multer = require('multer');
 const session = require('express-session');
 const bcrypt = require('bcryptjs'); 
+const CallHistory = require('./models/CallHistory');
 
 require('dotenv').config();
 
@@ -167,7 +168,10 @@ app.get('/dashboard', async (req, res) => {
   const user = await User.findById(req.session.userId);
   if (!user) return res.send('ユーザーが見つかりません');
 
-  res.render('dashboard', { user });
+  const histories = await CallHistory.find({ userId: user._id }).populate('partnerId').sort({ createdAt: -1 });
+
+  res.render('dashboard', { user, histories });
+
 });
 
 
@@ -347,6 +351,28 @@ app.get('/call/:roomId', async (req, res) => {
     user,
     partner
   });
+});
+
+
+
+app.post('/save-note', async (req, res) => {
+  if (!req.session.userId) return res.redirect('/login');
+
+  const { roomId, partnerId, note } = req.body;
+
+  try {
+    await CallHistory.create({
+      userId: req.session.userId,
+      partnerId,
+      roomId,
+      note
+    });
+
+    res.redirect('/dashboard');
+  } catch (err) {
+    console.error('❌ メモ保存エラー:', err);
+    res.status(500).send('メモの保存に失敗しました');
+  }
 });
 
 

@@ -13,6 +13,20 @@
   <p><strong>趣味:</strong> <%= user.hobbies %></p>
   <p><strong>学習目的:</strong> <%= user.purpose %></p>
 
+  <h2>📚 通話履歴</h2>
+    <% if (histories.length === 0) { %>
+    <p>通話履歴はまだありません。</p>
+    <% } else { %>
+    <ul>
+        <% histories.forEach(history => { %>
+        <li>
+            <strong><%= history.partnerId.username %></strong>（<%= history.createdAt.toLocaleString() %>）<br>
+            <em><%= history.note %></em>
+        </li>
+        <% }) %>
+    </ul>
+    <% } %>
+
   <p><a href="/edit-profile">プロフィールを編集する</a></p>
   <form action="/matching-wait" method="GET" style="display:inline;">
     <button type="submit">マッチング開始</button>
