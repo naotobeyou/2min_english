@@ -3,9 +3,18 @@ const bodyParser = require('body-parser');
 const mongoose = require('mongoose');
 const multer = require('multer');
 const session = require('express-session');
+const bcrypt = require('bcryptjs'); 
+
 require('dotenv').config();
 
 const app = express();
+
+//Socket.IO サーバー設定
+const server = require('http').createServer(app);
+const { Server } = require('socket.io');
+const io = new Server(server);
+
+const userSockets = new Map();
 
 app.use(session({
   secret: 'your-secret-key',
@@ -27,7 +36,7 @@ mongoose.connect(process.env.MONGODB_URI)
 
 // モデル読み込み
 const User = require('./models/User');
-
+const MatchingEntry = require('./models/MatchingEntry');
 
 // 新規登録ページ表示
 app.get('/register', (req, res) => {
@@ -167,7 +176,7 @@ app.get('/login', (req, res) => {
   res.render('login');
 });
 
-const bcrypt = require('bcryptjs'); // 念のため再確認！
+
 
 
 app.post('/login', async (req, res) => {
@@ -271,8 +280,7 @@ app.post('/edit-profile', upload.single('avatar'), async (req, res) => {
   }
 });
 
-//マッチング機能
-const MatchingEntry = require('./models/MatchingEntry');
+
 
 // マッチング待機画面
 app.get('/matching-wait', async (req, res) => {
@@ -281,7 +289,8 @@ app.get('/matching-wait', async (req, res) => {
   const me = await User.findById(req.session.userId);
   if (!me) return res.send('ユーザーが見つかりません');
 
-  // すでに待機中か確認
+  const others = await MatchingEntry.find({ userId: { $ne: me._id } });
+
   const exists = await MatchingEntry.findOne({ userId: me._id });
   if (!exists) {
     await MatchingEntry.create({
@@ -291,28 +300,27 @@ app.get('/matching-wait', async (req, res) => {
     });
   }
 
-  // 他のユーザーを探す
-  const others = await MatchingEntry.find({ userId: { $ne: me._id } });
-
   let match = others.find(u => u.level === me.level && u.hobbies === me.hobbies);
   if (!match) match = others.find(u => u.level === me.level);
   if (!match) match = others.find(u => u.hobbies === me.hobbies);
   if (!match && others.length > 0) match = others[0];
 
   if (match) {
-    // マッチ成立 → ルームIDを生成（ここでは仮）
     const roomId = `${me._id}-${match.userId}`;
-    
-    // 自分と相手をキューから削除
-    await MatchingEntry.deleteMany({ userId: { $in: [me._id, match.userId] } });
+    const targetSocketId = userSockets.get(match.userId.toString());
 
-    // お互いに通話ページにリダイレクト（ここでは仮に自分だけ）
+    if (targetSocketId) {
+      io.to(targetSocketId).emit('matched', roomId);
+    }
+
+    await MatchingEntry.deleteMany({ userId: { $in: [me._id, match.userId] } });
     return res.redirect(`/call/${roomId}`);
   }
 
-  // マッチ相手がいなければ待機画面表示
-  res.render('matching-wait');
+  res.render('matching-wait', { user: me });
 });
+
+
 
 //マッチングキャンセル
 app.post('/cancel-matching', async (req, res) => {
@@ -322,25 +330,34 @@ app.post('/cancel-matching', async (req, res) => {
 });
 
 //マッチング成立時
-app.get('/call/:roomId', (req, res) => {
-  res.render('call', { roomId: req.params.roomId });
+app.get('/call/:roomId', async (req, res) => {
+  if (!req.session.userId) return res.redirect('/login');
+
+  const user = await User.findById(req.session.userId);
+  if (!user) return res.send('ユーザーが見つかりません');
+
+  res.render('call', { roomId: req.params.roomId, user });
 });
 
-//Socket.IO サーバー設定
-const server = require('http').createServer(app);
-const { Server } = require('socket.io');
-const io = new Server(server);
+
 
 // WebRTC用ルーム制御
 
 io.on('connection', (socket) => {
+
+  socket.on('join-waiting', (userId) => {
+    console.log(`📡 ユーザー ${userId} が waiting に参加（socket: ${socket.id}）`);
+    userSockets.set(userId, socket.id);
+  });
+
+
   socket.on('join-room', (roomId) => {
     socket.join(roomId);
     const room = io.sockets.adapter.rooms.get(roomId);
-
     if (room && room.size === 2) {
       socket.to(roomId).emit('ready');
     }
+  
 
     
     socket.on('offer', (roomId, offer) => {

@@ -41,6 +41,24 @@
   </style>
 </head>
 <body>
+
+    <script src="/socket.io/socket.io.js"></script>
+    
+    <script>
+    const socket = io();
+    const myUserId = "<%= user._id %>"; // サーバーから渡す必要あり
+
+    // 待機に入ったことを通知
+    socket.emit('join-waiting', myUserId);
+
+    // マッチ成立時、サーバーから通知が来たらリダイレクト
+    socket.on('matched', (roomId) => {
+        window.location.href = `/call/${roomId}`;
+    });
+    </script>
+
+
+
   <h1>マッチング中です...</h1>
   <div class="spinner"></div>
   <p>しばらくお待ちください。</p>

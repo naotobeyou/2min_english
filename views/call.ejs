@@ -21,11 +21,18 @@
 
     const socket = io();
     const roomId = "<%= roomId %>";
+    const userId = "<%= user._id %>";
+    socket.emit('join-waiting', userId);
     const peer = new RTCPeerConnection({
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' }
       ]
     });
+
+    socket.on('matched', (roomId) => {
+    console.log("🔁 matched イベント受信 → /call にリダイレクト");
+    window.location.href = `/call/${roomId}`;
+  });
 
     socket.on('connect', () => {
       console.log("✅ ソケット接続OK！", socket.id);
