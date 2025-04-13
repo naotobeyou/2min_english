@@ -336,7 +336,17 @@ app.get('/call/:roomId', async (req, res) => {
   const user = await User.findById(req.session.userId);
   if (!user) return res.send('ユーザーが見つかりません');
 
-  res.render('call', { roomId: req.params.roomId, user });
+  const [id1, id2] = req.params.roomId.split('-');
+  const partnerId = (id1 === user._id.toString()) ? id2 : id1;
+  const partner = await User.findById(partnerId);
+
+  if (!partner) return res.send('相手の情報が見つかりません');
+
+  res.render('call', {
+    roomId: req.params.roomId,
+    user,
+    partner
+  });
 });
 
 
@@ -372,6 +382,12 @@ io.on('connection', (socket) => {
   socket.on('ice-candidate', (roomId, candidate) => {
     socket.to(roomId).emit('ice-candidate', candidate);
   });
+
+  socket.on('force-end', (roomId) => {
+    socket.to(roomId).emit('force-end'); // 相手にだけ通知
+  });
+
+
 });
 
 
