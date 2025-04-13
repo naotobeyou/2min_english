@@ -2,60 +2,81 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta charset="UTF-8">
   <title>音声通話</title>
 </head>
 <body>
   <h1>通話ルーム: <%= roomId %></h1>
   <p>音声通話を準備中...</p>
 
+  <!-- 音声出力 -->
   <audio id="remoteAudio" autoplay></audio>
+
+  <!-- Socket.IOクライアントの読み込み -->
   <script src="/socket.io/socket.io.js"></script>
 
+  <!-- JavaScript 本体 -->
+  <script>
+    console.log("📲 JavaScript が実行されています");
 
-<script>
-  const socket = io();
-  const roomId = "<%= roomId %>";
-  const peer = new RTCPeerConnection();
-
-  navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
-    stream.getTracks().forEach(track => peer.addTrack(track, stream));
-
-    peer.ontrack = (event) => {
-      document.getElementById('remoteAudio').srcObject = event.streams[0];
-    };
-
-    socket.emit('join-room', roomId);
-
-    socket.on('ready', async () => {
-      const offer = await peer.createOffer();
-      await peer.setLocalDescription(offer);
-      socket.emit('offer', roomId, offer);
+    const socket = io();
+    const roomId = "<%= roomId %>";
+    const peer = new RTCPeerConnection({
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' }
+      ]
     });
 
-    socket.on('offer', async (offer) => {
-      await peer.setRemoteDescription(offer);
-      const answer = await peer.createAnswer();
-      await peer.setLocalDescription(answer);
-      socket.emit('answer', roomId, answer);
+    socket.on('connect', () => {
+      console.log("✅ ソケット接続OK！", socket.id);
     });
 
-    socket.on('answer', async (answer) => {
-      await peer.setRemoteDescription(answer);
-    });
+    console.log("📡 ルームID: ", roomId);
 
-    socket.on('ice-candidate', async (candidate) => {
-      if (candidate) {
-        await peer.addIceCandidate(candidate);
-      }
-    });
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(stream => {
+        stream.getTracks().forEach(track => peer.addTrack(track, stream));
 
-    peer.onicecandidate = (event) => {
-      if (event.candidate) {
-        socket.emit('ice-candidate', roomId, event.candidate);
-      }
-    };
-  });
-</script>
+        peer.ontrack = (event) => {
+          console.log("🎧 相手の音声トラックが来た！");
+          document.getElementById('remoteAudio').srcObject = event.streams[0];
+        };
 
+        socket.emit('join-room', roomId);
+
+        socket.on('ready', async () => {
+          console.log("🚀 相手が入室したので、offer を送信します");
+          const offer = await peer.createOffer();
+          await peer.setLocalDescription(offer);
+          socket.emit('offer', roomId, offer);
+        });
+
+        socket.on('offer', async (offer) => {
+          await peer.setRemoteDescription(offer);
+          const answer = await peer.createAnswer();
+          await peer.setLocalDescription(answer);
+          socket.emit('answer', roomId, answer);
+        });
+
+        socket.on('answer', async (answer) => {
+          await peer.setRemoteDescription(answer);
+        });
+
+        socket.on('ice-candidate', async (candidate) => {
+          if (candidate) {
+            await peer.addIceCandidate(candidate);
+          }
+        });
+
+        peer.onicecandidate = (event) => {
+          if (event.candidate) {
+            socket.emit('ice-candidate', roomId, event.candidate);
+          }
+        };
+      })
+      .catch(err => {
+        console.error("❌ マイク取得エラー:", err);
+      });
+  </script>
 </body>
 </html>

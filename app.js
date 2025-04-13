@@ -99,6 +99,8 @@ app.post('/register', upload.single('avatar'), async (req, res) => {
       }
     }
 
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     const user = new User({ 
       username, 
       email, 
@@ -166,6 +168,7 @@ app.get('/login', (req, res) => {
 });
 
 const bcrypt = require('bcryptjs'); // 念のため再確認！
+
 
 app.post('/login', async (req, res) => {
   const { email, password } = req.body;
@@ -354,7 +357,6 @@ io.on('connection', (socket) => {
   });
 });
 
-// ⭐ 通話ページ（仮）は /call/:roomId に設置済みでOK
 
 // 💡 最後の server.listen に変更
 server.listen(3000, () => {
