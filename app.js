@@ -424,6 +424,10 @@ io.on('connection', (socket) => {
   socket.on('request-extension', (roomId) => {
     socket.to(roomId).emit('extension-requested');
   });
+
+  socket.on('topic-selected', ({ roomId, topic }) => {
+    socket.to(roomId).emit('topic-selected', topic);
+  });
   
   socket.on('approve-extension', (roomId) => {
     io.to(roomId).emit('extension-approved');

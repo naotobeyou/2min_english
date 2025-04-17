@@ -38,6 +38,13 @@
     <li><strong>英語レベル:</strong> <%= partner.level %></li>
   </ul>
 
+  <div id="topicArea" style="display: none; margin-top: 20px;">
+    <h3>💬 話題カード</h3>
+    <p id="topicContent">話題がここに表示されます</p>
+    <button id="changeTopicBtn">他の話題に変える</button>
+  </div>
+  <button id="showTopicBtn">話題を選ぶ</button>
+
   <!-- 終了ボタン -->
   <button id="endCallBtn" disabled style="padding: 10px 20px; background-color: crimson; color: white; border: none; border-radius: 5px; font-size: 16px;">
     通話を終了する
@@ -49,6 +56,8 @@
   <script src="/socket.io/socket.io.js"></script>
 
   <script>
+
+    
     const socket = io();
     const roomId = "<%= roomId %>";
     const userId = "<%= user._id %>";
@@ -91,6 +100,8 @@
 
       socket.emit('force-end', roomId);
     }
+
+    
 
 
   
@@ -184,7 +195,34 @@
         console.error("❌ マイク取得エラー:", err);
       });
 
+      const showTopicBtn = document.getElementById('showTopicBtn');
+      const changeTopicBtn = document.getElementById('changeTopicBtn');
+      const topicArea = document.getElementById('topicArea');
+      const topicContent = document.getElementById('topicContent');
 
+      const topics = [
+        "週末は何をして過ごすのが好き？",
+        "最近見た映画で面白かったのは？",
+        "英語を学ぶきっかけは？",
+        "もしどこでも住めるなら、どこを選ぶ？",
+        "子どものころの夢は？"
+      ];
+
+      function selectRandomTopic() {
+        const topic = topics[Math.floor(Math.random() * topics.length)];
+        socket.emit('topic-selected', { roomId, topic }); // ✅ オブジェクトで送信
+      }
+
+      // 話題を初めて選ぶ or 再選択
+      showTopicBtn.addEventListener('click', selectRandomTopic);
+      changeTopicBtn.addEventListener('click', selectRandomTopic);
+
+      // 相手と話題を共有
+      socket.on('topic-selected', (topic) => {
+        topicContent.textContent = topic;
+        topicArea.style.display = 'block';
+        showTopicBtn.style.display = 'none'; // 話題選択後は非表示に
+      });
 
    
 
