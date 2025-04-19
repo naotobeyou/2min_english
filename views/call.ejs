@@ -24,7 +24,6 @@
 
   <div id="timer" style="font-size: 24px; margin-bottom: 10px; color: green;">02:00</div>
   <p id="extensionInfo">延長可能回数: 2回</p>
-  <p>延長は残り30秒で相手にリクエスト可能になります！</p>
   <button id="extendBtn" style="display: none;">延長する</button>
  
   <h2>相手のプロフィール</h2>
@@ -38,12 +37,20 @@
     <li><strong>英語レベル:</strong> <%= partner.level %></li>
   </ul>
 
-  <div id="topicArea" style="display: none; margin-top: 20px;">
+  <div id="topicCardArea" style="margin-top: 20px;">
     <h3>💬 話題カード</h3>
-    <p id="topicContent">話題がここに表示されます</p>
-    <button id="changeTopicBtn">他の話題に変える</button>
+    <select id="topicSelect">
+      <option value="">-- 話題を選んでください --</option>
+      <option value="週末は何をして過ごすのが好き？">週末は何をして過ごすのが好き？</option>
+      <option value="最近見た映画で面白かったのは？">最近見た映画で面白かったのは？</option>
+      <option value="英語を学ぶきっかけは？">英語を学ぶきっかけは？</option>
+      <option value="もしどこでも住めるなら、どこを選ぶ？">もしどこでも住めるなら、どこを選ぶ？</option>
+      <option value="子どものころの夢は？">子どものころの夢は？</option>
+    </select>
+    <button id="sendTopicBtn">この話題にする</button>
+    <p id="topicDisplay" style="margin-top: 10px; font-weight: bold;"></p>
+    <p id="topicNotice" style="color: gray; margin-top: 10px;"></p>
   </div>
-  <button id="showTopicBtn">話題を選ぶ</button>
 
   <!-- 終了ボタン -->
   <button id="endCallBtn" disabled style="padding: 10px 20px; background-color: crimson; color: white; border: none; border-radius: 5px; font-size: 16px;">
@@ -195,49 +202,83 @@
         console.error("❌ マイク取得エラー:", err);
       });
 
-      const showTopicBtn = document.getElementById('showTopicBtn');
-      const changeTopicBtn = document.getElementById('changeTopicBtn');
-      const topicArea = document.getElementById('topicArea');
-      const topicContent = document.getElementById('topicContent');
 
-      const topics = [
-        "週末は何をして過ごすのが好き？",
-        "最近見た映画で面白かったのは？",
-        "英語を学ぶきっかけは？",
-        "もしどこでも住めるなら、どこを選ぶ？",
-        "子どものころの夢は？"
-      ];
 
-      function selectRandomTopic() {
-        const topic = topics[Math.floor(Math.random() * topics.length)];
-        socket.emit('topic-selected', { roomId, topic }); // ✅ オブジェクトで送信
-      }
+      const topicSelect = document.getElementById('topicSelect');
+      const sendTopicBtn = document.getElementById('sendTopicBtn');
+      const topicDisplay = document.getElementById('topicDisplay');
+      let topicLock = false;
 
-      // 話題を初めて選ぶ or 再選択
-      showTopicBtn.addEventListener('click', selectRandomTopic);
-      changeTopicBtn.addEventListener('click', selectRandomTopic);
+      sendTopicBtn.addEventListener('click', () => {
+        const selectedTopic = topicSelect.value;
+        if (!selectedTopic || topicLock) return;
 
-      // 相手と話題を共有
-      socket.on('topic-selected', (topic) => {
-        topicContent.textContent = topic;
-        topicArea.style.display = 'block';
-        showTopicBtn.style.display = 'none'; // 話題選択後は非表示に
+        socket.emit('topic-selected', { roomId, topic: selectedTopic });
+        topicDisplay.textContent = `💬 話題: ${selectedTopic}`;
+        topicNotice.textContent = `トピックの再選択は30秒後に可能になります！`;
+        startTopicCountdownNotice(); 
+        lockTopicSelection();
+
+        setTimeout(() => {
+          topicNotice.textContent = '';
+        }, 30000);
       });
 
-   
+      // 相手から届いた話題も表示
+      socket.on('topic-selected', (topic) => {
+        topicDisplay.textContent = `💬 話題: ${topic}`;
+        if (!topicLock) {
+          lockTopicSelection();
+          startTopicCountdownNotice('通話相手が以下のトピックを選びました！<br>');
+        }
+      });
+
+
+
+      // 選択後30秒間ロック
+      function lockTopicSelection() {
+        topicLock = true;
+        sendTopicBtn.disabled = true;
+        topicSelect.disabled = true;
+        setTimeout(() => {
+          topicLock = false;
+          sendTopicBtn.disabled = false;
+          topicSelect.disabled = false;
+        }, 30000); // 30秒後に解除
+      }
+
+      function startTopicCountdownNotice(prefix = '') {
+        let secondsLeft = 30;
+        topicNotice.innerHTML = `
+          ${prefix}トピックの再選択は ${secondsLeft} 秒後に可能です。
+        `;
+        const topicTimer = setInterval(() => {
+          secondsLeft--;
+          if (secondsLeft <= 0) {
+            clearInterval(topicTimer);
+            topicNotice.textContent = '';
+          } else {
+            topicNotice.innerHTML = `
+              ${prefix}トピックの再選択は ${secondsLeft} 秒後に可能です。
+            `;
+          }
+        }, 1000);
+      }
+              
 
         // 延長処理（60秒追加）
         let extensionCount = 0; // ← 追加（合計延長回数を管理）
         let isExtending = false;
 
         function extendCall() {
-            if (isExtending || extensionCount >= 2) return;
 
             isExtending = true;
             console.log("🟩 extendCall() 実行！ 現在の extensionCount:", extensionCount);
 
             extensionCount++;
             remaining += 60;
+
+            updateExtensionInfo(); 
 
             // extensionCount が 2 に達したときだけ非表示にする
             if (extensionCount >= 2) {
@@ -252,7 +293,6 @@
             statusEl.textContent = '✅ 通話が1分延長されました';
             statusEl.style.color = 'green';
 
-            updateExtensionInfo(); // 🔄 残り回数の表示を更新
 
             extensionRequested = false;
             extensionReceived = false;
@@ -328,11 +368,7 @@
         document.getElementById('extensionInfo').textContent = `延長可能回数: ${remaining}回`;
         }
 
-        // 初期表示
         updateExtensionInfo();
-
-
-
   </script>
   
 </body>
