@@ -387,6 +387,17 @@ app.post('/save-note', async (req, res) => {
   }
 });
 
+function findPartnerSocket(roomId, mySocketId) {
+  const room = io.sockets.adapter.rooms.get(roomId);
+  if (!room) return null;
+
+  for (const socketId of room) {
+    if (socketId !== mySocketId) return socketId;
+  }
+
+  return null;
+}
+
 
 
 // WebRTC用ルーム制御
@@ -428,6 +439,26 @@ io.on('connection', (socket) => {
   socket.on('topic-selected', ({ roomId, topic }) => {
     socket.to(roomId).emit('topic-selected', topic);
   });
+
+  socket.on('pause', ({ roomId, username }) => {
+    const partnerSocketId = findPartnerSocket(roomId, socket.id);
+    if (partnerSocketId) {
+      io.to(partnerSocketId).emit('partner-paused', username);
+    }
+  });
+  
+  socket.on('pause-time-update', ({ roomId, remainingPauseTime }) => {
+    const partnerSocketId = findPartnerSocket(roomId, socket.id);
+    if (partnerSocketId) {
+      io.to(partnerSocketId).emit('pause-time-update', { remainingPauseTime });
+    }
+  });
+
+  //一時停止の終了
+  socket.on('resume', (roomId) => {
+    const partnerSocketId = findPartnerSocket(roomId, socket.id);
+    io.to(partnerSocketId).emit('partner-resumed');
+  });
   
   socket.on('approve-extension', (roomId) => {
     io.to(roomId).emit('extension-approved');
@@ -439,6 +470,9 @@ io.on('connection', (socket) => {
 
 
 });
+
+
+
 
 
 // 💡 最後の server.listen に変更

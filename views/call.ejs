@@ -52,6 +52,24 @@
     <p id="topicNotice" style="color: gray; margin-top: 10px;"></p>
   </div>
 
+
+  <button id="pauseBtn">⏸️ 一時停止</button>
+  <button id="resumeBtn" style="display:none;">▶️ 再開</button>
+
+    <!-- 一時停止ステータス表示用 -->
+  <div id="pause-status" style="text-align:center; margin-top: 10px; display: none;">
+    <span id="pause-label" style="font-size: 1.2em;"></span>
+  </div>
+
+
+  <div id="myPauseTime" style="margin-top: 5px;">
+    ⏸️ あなたの一時停止残り時間: <span id="myPauseTimeLeft">2:00</span>
+  </div>
+  <div id="partnerPauseTime" style="margin-top: 5px;">
+    ⏸️ 相手の一時停止残り時間: <span id="partnerPauseTimeLeft">2:00</span>
+  </div>
+
+
   <!-- 終了ボタン -->
   <button id="endCallBtn" disabled style="padding: 10px 20px; background-color: crimson; color: white; border: none; border-radius: 5px; font-size: 16px;">
     通話を終了する
@@ -113,34 +131,37 @@
 
   
     endCallBtn.addEventListener('click', endCall);
+
+    let timerPaused = false; 
   
     function startTimer() {
       timerInterval = setInterval(() => {
+        if (timerPaused) return;  // ⏸️ 一時停止中は何もしない
+
         const min = String(Math.floor(remaining / 60)).padStart(2, '0');
         const sec = String(remaining % 60).padStart(2, '0');
         timerDisplay.textContent = `${min}:${sec}`;
-  
-        if (remaining === 30 && extensionCount < 2) {
-            timerDisplay.style.color = "red";
-            extendBtn.style.display = 'inline-block';
-            extendBtn.disabled = false;
-            extendBtn.textContent = '延長する';
-            }
 
-  
+        if (remaining === 30 && extensionCount < 2) {
+          timerDisplay.style.color = "red";
+          extendBtn.style.display = 'inline-block';
+          extendBtn.disabled = false;
+          extendBtn.textContent = '延長する';
+        }
+
         if (remaining <= 0) {
           clearInterval(timerInterval);
           if (statusEl) {
             statusEl.textContent = '📝 通話時間が終了しました。メモを残しましょう！';
             statusEl.style.color = 'black';
           }
-          endCall(); // タイムアップ時にも共通処理を呼ぶ
+          endCall();
         }
-  
+
         remaining--;
       }, 1000);
     }
-  
+      
     socket.on('matched', (roomId) => {
       window.location.href = `/call/${roomId}`;
     });
@@ -335,9 +356,11 @@
         }
         });
 
+
         // 相手から延長リクエストが届いた時
         socket.on('extension-requested', () => {
         extensionReceived = true;
+
 
         if (extensionRequested) {
             socket.emit('approve-extension', roomId);
@@ -369,6 +392,135 @@
         }
 
         updateExtensionInfo();
+
+
+        //一時停止制御
+        
+
+        socket.on('pause-time-update', ({ remainingPauseTime }) => {
+          const minutes = Math.floor(remainingPauseTime / 60);
+          const seconds = remainingPauseTime % 60;
+          document.getElementById('partnerPauseTimeLeft').textContent = 
+            `${minutes}:${seconds.toString().padStart(2, '0')}`;
+        });
+        
+        let isPaused = false;
+        let remainingPauseTime = 120; // 秒数（2分 = 120秒）
+        let pauseInterval;
+
+        function updatePauseStatusDisplay(userName, isSelfPaused, isOtherPaused) {
+          const pauseStatus = document.getElementById('pause-status');
+          const pauseLabel = document.getElementById('pause-label');
+        
+
+          if (isSelfPaused) {
+            pauseLabel.textContent = '⏸️ 一時停止中です';
+            pauseStatus.style.display = 'block';
+          } else if (isOtherPaused) {
+            pauseLabel.textContent = `⏸️ ${userName}さんは今一時停止中です`;
+            pauseStatus.style.display = 'block';
+          } else {
+            pauseStatus.style.display = 'none';
+          }
+        }
+
+        function startPauseCountdown() {
+          pauseInterval = setInterval(() => {
+            if (remainingPauseTime > 0) {
+              remainingPauseTime--;
+
+              const minutes = Math.floor(remainingPauseTime / 60);
+              const seconds = remainingPauseTime % 60;
+
+              // ✅ 表示されている自分のタイマーだけ更新
+              document.getElementById('myPauseTimeLeft').textContent =
+                `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+              // ✅ 相手にも送信
+              socket.emit('pause-time-update', { roomId, remainingPauseTime });
+            } else {
+              clearInterval(pauseInterval);
+            }
+          }, 1000);
+        }
+
+
+        function handlePauseStart() {
+          isPaused = true;
+          timerPaused = true;
+          updatePauseStatusDisplay(null, true, false);
+          startPauseCountdown();
+
+          pauseBtn.disabled = true;       // ⏸️ は押せないように
+          resumeBtn.disabled = false;     // ▶️ は有効にする
+        }
+
+        function handlePauseEnd() {
+          isPaused = false;
+          timerPaused = false;
+          updatePauseStatusDisplay(null, false, false);
+          clearInterval(pauseInterval);
+
+          resumeBtn.disabled = true;      // ▶️ を無効にして
+          if (remainingPauseTime > 0) {
+            pauseBtn.disabled = false;    // ⏸️ を再び有効に
+          }
+        }
+
+        socket.on('partner-paused', (partnerName) => {
+          updatePauseStatusDisplay(partnerName, false, true);
+        });
+
+        socket.on('partner-resumed', () => {
+          updatePauseStatusDisplay(null, false, false);
+        });
+
+        const pauseBtn = document.getElementById('pauseBtn');
+        const resumeBtn = document.getElementById('resumeBtn');
+
+        function lockPauseButton() {
+          pauseBtn.disabled = true;
+          resumeBtn.disabled = true;
+        }
+
+
+        function unlockPauseButton() {
+          if (remainingPauseTime > 0) {
+            pauseBtn.disabled = false;
+          }
+        }
+
+
+        socket.on('partner-paused', (partnerName) => {
+          timerPaused = true;
+          updatePauseStatusDisplay(partnerName, false, true);
+          lockPauseButton(); // ← 相手が一時停止中なので自分は押せない
+        });
+
+
+        socket.on('partner-resumed', () => {
+          timerPaused = false;
+          updatePauseStatusDisplay(null, false, false);
+          unlockPauseButton(); // ← 相手が解除したので自分も操作可能に
+        });
+
+
+
+        pauseBtn.addEventListener('click', () => {
+          if (remainingPauseTime <= 0) return;
+          socket.emit('pause', { roomId, username: "<%= user.username %>" });
+          handlePauseStart();
+          pauseBtn.style.display = 'none';
+          resumeBtn.style.display = 'inline-block';
+        });
+
+        resumeBtn.addEventListener('click', () => {
+          socket.emit('resume', roomId);
+          handlePauseEnd();
+          resumeBtn.style.display = 'none';
+          pauseBtn.style.display = 'inline-block';
+        });
+
   </script>
   
 </body>
