@@ -37,6 +37,10 @@
     
       <label for="details">補足（任意）:</label><br>
       <textarea name="details" rows="3" cols="40" placeholder="補足があれば書いてください"></textarea><br>
+
+        <button type="submit" style="margin-top: 10px; color: red;">
+          🚫 通報・ブロックする
+        </button>
     
     </form>
   </div>
@@ -91,6 +95,15 @@
   <div id="partnerPauseTime" style="margin-top: 5px;">
     ⏸️ 相手の一時停止残り時間: <span id="partnerPauseTimeLeft">2:00</span>
   </div>
+
+    <h3>🎧 デバイス切り替え</h3>
+    <label for="micSelect">🎤 マイク:</label>
+    <select id="micSelect"></select>
+
+    <label for="speakerSelect">🔊 スピーカー:</label>
+    <select id="speakerSelect"></select>
+
+    <p style="color: gray;">マイク・スピーカーは通話中でも切り替え可能です</p>
 
 
   <!-- 終了ボタン -->
@@ -550,6 +563,106 @@
           }
           return true;
         }
+
+  //オーディオ切り替え
+  const micSelect = document.getElementById('micSelect');
+  const speakerSelect = document.getElementById('speakerSelect');
+  const remoteAudio = document.getElementById('remoteAudio');
+
+  let currentStream;
+
+  async function initDeviceSelectors() {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const audioInputs = devices.filter(d => d.kind === 'audioinput');
+      const audioOutputs = devices.filter(d => d.kind === 'audiooutput');
+
+      micSelect.innerHTML = '';
+      speakerSelect.innerHTML = '';
+
+      audioInputs.forEach(device => {
+        const option = document.createElement('option');
+        option.value = device.deviceId;
+        option.textContent = device.label || `マイク (${device.deviceId})`;
+        micSelect.appendChild(option);
+      });
+
+      audioOutputs.forEach(device => {
+        const option = document.createElement('option');
+        option.value = device.deviceId;
+        option.textContent = device.label || `スピーカー (${device.deviceId})`;
+        speakerSelect.appendChild(option);
+      });
+
+      // 保存済みのものを選択
+      const savedMic = localStorage.getItem('preferredMic');
+      const savedSpeaker = localStorage.getItem('preferredSpeaker');
+      if (savedMic && micSelect.querySelector(`[value="${savedMic}"]`)) {
+        micSelect.value = savedMic;
+        await switchMic(savedMic); // 初回から反映
+      }
+      if (savedSpeaker && speakerSelect.querySelector(`[value="${savedSpeaker}"]`)) {
+        speakerSelect.value = savedSpeaker;
+        await switchSpeaker(savedSpeaker);
+      }
+    } catch (err) {
+      console.error("🎧 デバイス一覧の取得エラー:", err);
+    }
+  }
+
+  // 🎤 マイク切り替え
+  async function switchMic(deviceId) {
+    try {
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        audio: { deviceId: { exact: deviceId } }
+      });
+
+      const newAudioTrack = newStream.getAudioTracks()[0];
+      const sender = peer.getSenders().find(s => s.track.kind === 'audio');
+      if (sender) {
+        sender.replaceTrack(newAudioTrack);
+      }
+
+      // 古いストリーム停止
+      if (currentStream) {
+        currentStream.getTracks().forEach(t => t.stop());
+      }
+
+      currentStream = newStream;
+    } catch (err) {
+      console.error('🎤 マイク切り替えエラー:', err);
+    }
+  }
+
+  // 🔊 スピーカー切り替え
+  async function switchSpeaker(deviceId) {
+    if (typeof remoteAudio.setSinkId === 'function') {
+      try {
+        await remoteAudio.setSinkId(deviceId);
+        console.log('🔊 スピーカー変更:', deviceId);
+      } catch (err) {
+        console.error('🔊 スピーカー切り替えエラー:', err);
+      }
+    } else {
+      console.warn('setSinkId 未対応のブラウザです');
+    }
+  }
+
+  micSelect.addEventListener('change', () => {
+    const selected = micSelect.value;
+    localStorage.setItem('preferredMic', selected);
+    switchMic(selected);
+  });
+
+  speakerSelect.addEventListener('change', () => {
+    const selected = speakerSelect.value;
+    localStorage.setItem('preferredSpeaker', selected);
+    switchSpeaker(selected);
+  });
+
+  initDeviceSelectors();
+
+
 
   </script>
   

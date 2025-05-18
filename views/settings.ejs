@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>設定ページ</title>
+</head>
+<body>
+  <h1>⚙️ 設定</h1>
+  <p>ようこそ、<%= user.username %> さん</p>
+
+  <h3>🎧 音声デバイス設定</h3>
+
+  <label for="micSelect">🎤 マイク選択:</label>
+  <select id="micSelect"></select><br>
+
+  <label for="speakerSelect">🔊 スピーカー選択:</label>
+  <select id="speakerSelect"></select><br>
+
+  <p id="deviceInfo" style="color: gray; margin-top: 5px;"></p>
+
+  <a href="/dashboard">← ダッシュボードへ戻る</a>
+
+  <script>
+    const micSelect = document.getElementById('micSelect');
+    const speakerSelect = document.getElementById('speakerSelect');
+    const deviceInfo = document.getElementById('deviceInfo');
+
+    async function loadAudioDevices() {
+      try {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const audioInputs = devices.filter(d => d.kind === 'audioinput');
+        const audioOutputs = devices.filter(d => d.kind === 'audiooutput');
+
+        micSelect.innerHTML = '';
+        speakerSelect.innerHTML = '';
+
+        audioInputs.forEach(device => {
+          const option = document.createElement('option');
+          option.value = device.deviceId;
+          option.textContent = device.label || `マイク (${device.deviceId})`;
+          micSelect.appendChild(option);
+        });
+
+        audioOutputs.forEach(device => {
+          const option = document.createElement('option');
+          option.value = device.deviceId;
+          option.textContent = device.label || `スピーカー (${device.deviceId})`;
+          speakerSelect.appendChild(option);
+        });
+
+        const savedMic = localStorage.getItem('preferredMic');
+        const savedSpeaker = localStorage.getItem('preferredSpeaker');
+        if (savedMic) micSelect.value = savedMic;
+        if (savedSpeaker && speakerSelect.querySelector(`[value="${savedSpeaker}"]`)) {
+          speakerSelect.value = savedSpeaker;
+        }
+
+        deviceInfo.textContent = '設定はこのブラウザに保存されます。';
+      } catch (err) {
+        console.error('🎤 デバイス取得エラー:', err);
+        deviceInfo.textContent = 'デバイス情報の取得に失敗しました';
+      }
+    }
+
+    micSelect.addEventListener('change', () => {
+      localStorage.setItem('preferredMic', micSelect.value);
+    });
+
+    speakerSelect.addEventListener('change', () => {
+      localStorage.setItem('preferredSpeaker', speakerSelect.value);
+    });
+
+    loadAudioDevices();
+  </script>
+</body>
+</html>

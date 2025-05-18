@@ -17,10 +17,15 @@
     📜 メモ履歴を確認する
   </a>
 
+
+
   <p><a href="/edit-profile">プロフィールを編集する</a></p>
   <form action="/matching-wait" method="GET" style="display:inline;">
     <button type="submit">マッチング開始</button>
   </form>
+
+<p><a href="/settings">🎛️ 設定</a></p>
+
   <a href="/logout">ログアウト</a>
 
 
@@ -29,6 +34,63 @@
     if (urlParams.get('blocked') === '1') {
       alert('✅ ユーザーをブロックしました');
     }
+
+    //音声デバイス設定
+
+      const micSelect = document.getElementById('micSelect');
+      const speakerSelect = document.getElementById('speakerSelect');
+      const deviceInfo = document.getElementById('deviceInfo');
+
+      async function loadAudioDevices() {
+        try {
+          const devices = await navigator.mediaDevices.enumerateDevices();
+          const audioInputs = devices.filter(d => d.kind === 'audioinput');
+          const audioOutputs = devices.filter(d => d.kind === 'audiooutput');
+
+          micSelect.innerHTML = '';
+          speakerSelect.innerHTML = '';
+
+          audioInputs.forEach(device => {
+            const option = document.createElement('option');
+            option.value = device.deviceId;
+            option.textContent = device.label || `マイク (${device.deviceId})`;
+            micSelect.appendChild(option);
+          });
+
+          audioOutputs.forEach(device => {
+            const option = document.createElement('option');
+            option.value = device.deviceId;
+            option.textContent = device.label || `スピーカー (${device.deviceId})`;
+            speakerSelect.appendChild(option);
+          });
+
+          // 保存された設定を選択
+          const savedMic = localStorage.getItem('preferredMic');
+          const savedSpeaker = localStorage.getItem('preferredSpeaker');
+          if (savedMic) micSelect.value = savedMic;
+          if (savedSpeaker && speakerSelect.querySelector(`[value="${savedSpeaker}"]`)) {
+            speakerSelect.value = savedSpeaker;
+          }
+
+          deviceInfo.textContent = 'デバイス選択はローカルに保存されます。次回の通話に反映されます。';
+        } catch (err) {
+          console.error('🎤 デバイス取得エラー:', err);
+          deviceInfo.textContent = 'デバイス情報の取得に失敗しました';
+        }
+      }
+
+      micSelect.addEventListener('change', () => {
+        localStorage.setItem('preferredMic', micSelect.value);
+      });
+
+      speakerSelect.addEventListener('change', () => {
+        localStorage.setItem('preferredSpeaker', speakerSelect.value);
+      });
+
+  // 初期化
+  loadAudioDevices();
+
+
   </script>
 
 </body>

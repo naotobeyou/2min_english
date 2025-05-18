@@ -414,6 +414,17 @@ function findPartnerSocket(roomId, mySocketId) {
 }
 
 
+//設定画面
+app.get('/settings', async (req, res) => {
+  if (!req.session.userId) return res.redirect('/login');
+
+  const user = await User.findById(req.session.userId);
+  if (!user) return res.send('ユーザーが見つかりません');
+
+  res.render('settings', { user });
+});
+
+
 
 // WebRTC用ルーム制御
 
