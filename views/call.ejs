@@ -150,7 +150,53 @@
       if (timerDisplay) timerDisplay.style.display = 'none';
       if (noteSection) noteSection.style.display = 'block';
   
+
       clearInterval(timerInterval);
+
+
+      [
+      'extensionInfo',
+      'extendBtn',
+      'topicCardArea',
+      'pauseBtn',
+      'resumeBtn',
+      'myPauseTime',
+      'partnerPauseTime',
+      'pause-status',
+      'micSelect',
+      'speakerSelect',
+      'reason', // selectタグ
+      'details', // textareaタグ
+    ].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = 'none';
+    });
+
+    // ブロックフォーム全体を非表示（formタグ）
+    const forms = document.querySelectorAll('form[action="/block"]');
+    forms.forEach(form => form.style.display = 'none');
+
+    // 🎧 デバイス切り替え関連のラベルとテキストも非表示に
+    const micLabel = document.querySelector('label[for="micSelect"]');
+    const speakerLabel = document.querySelector('label[for="speakerSelect"]');
+
+    // 👇 すべての <p> を確認し、目的のテキストを含むものを非表示に
+    const allParagraphs = document.querySelectorAll('p');
+    allParagraphs.forEach(p => {
+      if (p.textContent.includes('マイク・スピーカー')) {
+        p.style.display = 'none';
+      }
+    });
+
+    if (micLabel) micLabel.style.display = 'none';
+    if (speakerLabel) speakerLabel.style.display = 'none';
+
+    // 🎧 デバイス切り替えタイトルも非表示
+    const deviceHeading = Array.from(document.getElementsByTagName('h3'))
+      .find(h => h.textContent.includes('デバイス切り替え'));
+    if (deviceHeading) deviceHeading.style.display = 'none';
+
+
   
       // 音声送信停止
       if (peer && peer.getSenders) {
