@@ -5,6 +5,7 @@ const multer = require('multer');
 const session = require('express-session');
 const bcrypt = require('bcryptjs'); 
 const CallHistory = require('./models/CallHistory');
+const blockRoutes = require('./routes/block');
 require('dotenv').config();
 
 const app = express();
@@ -15,6 +16,7 @@ const { Server } = require('socket.io');
 const io = new Server(server);
 
 const userSockets = new Map();
+
 
 app.use(session({
   secret: 'your-secret-key',
@@ -28,6 +30,7 @@ app.use(session({
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('public'));
 app.set('view engine', 'ejs');
+app.use('/block', blockRoutes);
 
 // MongoDB接続
 mongoose.connect(process.env.MONGODB_URI)
@@ -108,18 +111,17 @@ app.post('/register', upload.single('avatar'), async (req, res) => {
       }
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-
     const user = new User({ 
       username, 
       email, 
-      password: hashedPassword,
+      password,
       level,
       purpose,
       hobbies,
       avatar
     });
     await user.save();
+    req.session.userId = user._id;
 
     console.log('保存されたユーザー:', user); // ここで確認！
     res.render('dashboard', { user }); 
@@ -169,7 +171,9 @@ app.get('/dashboard', async (req, res) => {
 
   const histories = await CallHistory.find({ userId: user._id }).populate('partnerId').sort({ createdAt: -1 });
 
-  res.render('dashboard', { user, histories });
+  const blocked = req.query.blocked === '1';
+
+  res.render('dashboard', { user, histories, blocked});
 
 });
 
@@ -302,10 +306,21 @@ app.get('/history', async (req, res) => {
 app.get('/matching-wait', async (req, res) => {
   if (!req.session.userId) return res.redirect('/login');
 
+
+ 
   const me = await User.findById(req.session.userId);
   if (!me) return res.send('ユーザーが見つかりません');
 
-  const others = await MatchingEntry.find({ userId: { $ne: me._id } });
+   // 🔒 自分がブロックした相手のIDリストを取得
+   const blockedMe = await User.find({ blockedUsers: me._id }, '_id');
+   const blockedMeIds = blockedMe.map(user => user._id);
+
+   const allBlockedIds = [...(me.blockedUsers || []), ...blockedMeIds];
+
+  // 🔎 「自分以外」で「自分がブロックしていないユーザー」のみ取得
+  const others = await MatchingEntry.find({
+    userId: { $ne: me._id, $nin: allBlockedIds}
+  });
 
   const exists = await MatchingEntry.findOne({ userId: me._id });
   if (!exists) {

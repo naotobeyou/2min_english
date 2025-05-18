@@ -19,6 +19,26 @@
       <button type="submit">メモを保存する</button>
     </form>
     <button id="skipNoteBtn" style="margin-top: 10px;">メモを残さず終了</button>
+
+     <!-- 通報ボタン・ブロックボタン -->
+
+    <form method="POST" action="/block" onsubmit="return confirm('本当にこのユーザーをブロックしますか？')">
+      <input type="hidden" name="blockedUserId" value="<%= partner._id %>">
+    
+      <label for="reason">通報理由（任意）:</label><br>
+      <select name="reason" id="reason" required>
+        <option value="" disabled>選んでください</option>
+        <option value="迷惑行為">迷惑行為</option>
+        <option value="不適切な言葉づかい">不適切な言葉づかい</option>
+        <option value="性的な発言">性的な発言</option>
+        <option value="暴力的な発言">暴力的な発言</option>
+        <option value="その他">その他</option>
+      </select><br>
+    
+      <label for="details">補足（任意）:</label><br>
+      <textarea name="details" rows="3" cols="40" placeholder="補足があれば書いてください"></textarea><br>
+    
+    </form>
   </div>
 
 
@@ -36,6 +56,9 @@
     <li><strong>目的:</strong> <%= partner.purpose || '未設定' %></li>
     <li><strong>英語レベル:</strong> <%= partner.level %></li>
   </ul>
+
+   
+
 
   <div id="topicCardArea" style="margin-top: 20px;">
     <h3>💬 話題カード</h3>
@@ -125,8 +148,6 @@
 
       socket.emit('force-end', roomId);
     }
-
-    
 
 
   
@@ -520,6 +541,15 @@
           resumeBtn.style.display = 'none';
           pauseBtn.style.display = 'inline-block';
         });
+
+        function validateBlockForm() {
+          const reason = document.getElementById('reason');
+          if (!reason.value) {
+            alert("通報理由を選んでください。");
+            return false;
+          }
+          return true;
+        }
 
   </script>
   

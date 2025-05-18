@@ -22,5 +22,14 @@
     <button type="submit">マッチング開始</button>
   </form>
   <a href="/logout">ログアウト</a>
+
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('blocked') === '1') {
+      alert('✅ ユーザーをブロックしました');
+    }
+  </script>
+
 </body>
 </html>
