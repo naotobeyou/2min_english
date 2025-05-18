@@ -424,6 +424,10 @@ app.get('/settings', async (req, res) => {
   res.render('settings', { user });
 });
 
+//パスワード再発行
+const passwordRoutes = require('./routes/password');
+app.use('/', passwordRoutes);
+
 
 
 // WebRTC用ルーム制御
