@@ -14,6 +14,7 @@
   
     <!-- パスワード（必須・6文字以上） -->
     <input type="password" name="password" placeholder="パスワード" required minlength="6"><br>
+    <input type="password" id="confirmPassword" placeholder="もう一度パスワードを入力" required><br>
 
  <!-- 英語レベル -->
  <label>英語レベル（CEFR）:</label><br>
@@ -41,5 +42,18 @@
     <button type="submit">登録する</button>
     <p>すでにアカウントをお持ちですか？ <a href="/login">こちらからログイン</a></p>
   </form>
+
+<script>
+  const form = document.querySelector('form');
+  form.addEventListener('submit', function (e) {
+    const pw = document.getElementById('password').value;
+    const confirm = document.getElementById('confirmPassword').value;
+    if (pw !== confirm) {
+      e.preventDefault();
+      alert("パスワードが一致しません。もう一度確認してください。");
+    }
+  });
+</script>
+
 </body>
 </html>

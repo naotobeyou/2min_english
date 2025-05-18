@@ -87,6 +87,7 @@
 
   <button id="pauseBtn">⏸️ 一時停止</button>
   <button id="resumeBtn" style="display:none;">▶️ 再開</button>
+  <p style="color: gray; margin-top: 5px;">↑調べものをするときに使ってね！</p>
 
     <!-- 一時停止ステータス表示用 -->
   <div id="pause-status" style="text-align:center; margin-top: 10px; display: none;">
@@ -172,7 +173,8 @@
       'speakerSelect',
       'reason', // selectタグ
       'details', // textareaタグ
-      'speakerVolumeControl'
+      'speakerVolumeControl',
+      'pauseHint'
     ].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.style.display = 'none';
