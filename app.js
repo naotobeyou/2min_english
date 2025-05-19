@@ -364,6 +364,11 @@ app.post('/cancel-matching', async (req, res) => {
 app.get('/call/:roomId', async (req, res) => {
   if (!req.session.userId) return res.redirect('/login');
 
+    if (req.session.callEnded) {
+    req.session.callEnded = false; // リセット
+    return res.redirect('/dashboard');
+  }
+
   const user = await User.findById(req.session.userId);
   if (!user) return res.send('ユーザーが見つかりません');
 
@@ -412,6 +417,13 @@ function findPartnerSocket(roomId, mySocketId) {
 
   return null;
 }
+
+// 通話終了フラグ
+app.post('/mark-ended', (req, res) => {
+  req.session.callEnded = true;
+  res.sendStatus(200);
+});
+
 
 
 //設定画面

@@ -7,72 +7,33 @@
 </head>
 
 <body>
-  <h1>通話ルーム: <%= roomId %></h1>
-  <p id="status">音声通話を準備中...</p>
 
-  <!-- メモ入力欄（初期は非表示） -->
-<div id="noteSection" style="display: none; margin-top: 20px;">
-    <h3>通話の振り返りメモ</h3>
-    <form id="noteForm" method="POST" action="/save-note">
-      <textarea name="note" rows="5" cols="50" placeholder="気づきや改善点などを書いてね！"></textarea><br>
-      <input type="hidden" name="roomId" value="<%= roomId %>">
-      <input type="hidden" name="partnerId" value="<%= partner._id %>">
-      <button type="submit">メモを保存する</button>
-    </form>
-    <button id="skipNoteBtn" style="margin-top: 10px;">メモを残さず終了</button>
+    <!-- 通話ルーム情報 -->
+  <div class="card text-center" style="max-width: 800px; margin: 2rem auto;">
+    <h1 class="text-lg">🗣️ 通話ルーム: <%= roomId %></h1>
+    <p id="status">音声通話を準備中...</p>
 
-     <!-- 通報ボタン・ブロックボタン -->
-
-    <form method="POST" action="/block" onsubmit="return confirm('本当にこのユーザーをブロックしますか？')">
-      <input type="hidden" name="blockedUserId" value="<%= partner._id %>">
-    
-      <label for="reason">通報理由（任意）:</label><br>
-      <select name="reason" id="reason" required>
-        <option value="" disabled>選んでください</option>
-        <option value="迷惑行為">迷惑行為</option>
-        <option value="不適切な言葉づかい">不適切な言葉づかい</option>
-        <option value="性的な発言">性的な発言</option>
-        <option value="暴力的な発言">暴力的な発言</option>
-        <option value="その他">その他</option>
-      </select><br>
-    
-      <label for="details">補足（任意）:</label><br>
-      <textarea name="details" rows="3" cols="40" placeholder="補足があれば書いてください"></textarea><br>
-
-        <button type="submit" style="margin-top: 10px; color: red;">
-          🚫 通報・ブロックする
-        </button>
-    
-    </form>
+    <div id="timer" class="timer">02:00</div>
+    <p id="extensionInfo" class="text-sm">延長可能回数: 2回</p>
+    <button id="extendBtn" class="btn btn-secondary" style="display: none;">延長する</button>
   </div>
 
-
-  <div id="timer" style="font-size: 24px; margin-bottom: 10px; color: green;">02:00</div>
-  <p id="extensionInfo">延長可能回数: 2回</p>
-  <button id="extendBtn" style="display: none;">延長する</button>
- 
-  <h2>相手のプロフィール</h2>
-
-  <img src="/uploads/<%= partner.avatar || 'default.png' %>" alt="プロフィール画像" style="width: 120px; height: 120px; border-radius: 50%; border: 2px solid #ccc; margin-bottom: 10px;">
-  
-  <ul>
-    <li><strong>名前:</strong> <%= partner.username %></li>
-    <li><strong>趣味:</strong> <%= partner.hobbies || '未設定' %></li>
-    <li><strong>目的:</strong> <%= partner.purpose || '未設定' %></li>
-    <li><strong>英語レベル:</strong> <%= partner.level %></li>
-  </ul>
-
-  <div id="speakerVolumeControl" style="margin-top: 10px;">
-    <label for="speakerVolume">🔊 スピーカー音量:</label>
-    <input type="range" id="speakerVolume" min="0" max="1" step="0.01" value="1">
+  <!-- 相手のプロフィール -->
+  <div class="card" style="max-width: 800px; margin: 2rem auto;">
+    <h2>👤 相手のプロフィール</h2>
+    <img src="/uploads/<%= partner.avatar || 'default.png' %>" alt="プロフィール画像" class="avatar" style="width: 120px; height: 120px; margin-bottom: 1rem;">
+    <ul style="list-style: none; padding: 0;">
+      <li><strong>名前:</strong> <%= partner.username %></li>
+      <li><strong>趣味:</strong> <%= partner.hobbies || '未設定' %></li>
+      <li><strong>目的:</strong> <%= partner.purpose || '未設定' %></li>
+      <li><strong>英語レベル:</strong> <%= partner.level %></li>
+    </ul>
   </div>
 
-   
-
-
-  <div id="topicCardArea" style="margin-top: 20px;">
+  <!-- 話題カード -->
+  <div class="card" style="max-width: 800px; margin: 2rem auto;" id="topicCardArea">
     <h3>💬 話題カード</h3>
-    <select id="topicSelect">
+    <select id="topicSelect" class="input">
       <option value="">-- 話題を選んでください --</option>
       <option value="週末は何をして過ごすのが好き？">週末は何をして過ごすのが好き？</option>
       <option value="最近見た映画で面白かったのは？">最近見た映画で面白かったのは？</option>
@@ -80,50 +41,92 @@
       <option value="もしどこでも住めるなら、どこを選ぶ？">もしどこでも住めるなら、どこを選ぶ？</option>
       <option value="子どものころの夢は？">子どものころの夢は？</option>
     </select>
-    <button id="sendTopicBtn">この話題にする</button>
-    <p id="topicDisplay" style="margin-top: 10px; font-weight: bold;"></p>
-    <p id="topicNotice" style="color: gray; margin-top: 10px;"></p>
+    <button id="sendTopicBtn" class="btn btn-secondary" style="margin-top: 0.5rem;">この話題にする</button>
+    <p id="topicDisplay" class="text-lg" style="margin-top: 1rem; font-weight: bold;"></p>
+    <p id="topicNotice" class="text-sm" style="color: gray; margin-top: 0.5rem;"></p>
   </div>
 
+  <!-- 一時停止・終了ボタン -->
+  <div class="text-center" style="margin-top: 1rem;">
+    <button id="pauseBtn" class="btn btn-secondary">⏸️ 一時停止</button>
+    <p id="pauseHint" style="color: gray; margin-top: 5px;">↑調べものをするときに使ってね！</p>
+    <button id="resumeBtn" class="btn btn-secondary" style="display:none;">▶️ 再開</button>
+    <button id="endCallBtn" class="btn btn-primary" style="background-color: crimson;" disabled>通話を終了する</button>
 
-  <button id="pauseBtn">⏸️ 一時停止</button>
-  <button id="resumeBtn" style="display:none;">▶️ 再開</button>
-  <p style="color: gray; margin-top: 5px;">↑調べものをするときに使ってね！</p>
-
-    <!-- 一時停止ステータス表示用 -->
-  <div id="pause-status" style="text-align:center; margin-top: 10px; display: none;">
-    <span id="pause-label" style="font-size: 1.2em;"></span>
   </div>
 
-
-  <div id="myPauseTime" style="margin-top: 5px;">
-    ⏸️ あなたの一時停止残り時間: <span id="myPauseTimeLeft">2:00</span>
+  <!-- 残り時間表示 -->
+  <div class="text-center" style="margin-top: 1rem;">
+    <div id="pause-status" style="display: none;">
+      <span id="pause-label" style="font-size: 1.2em;"></span>
+    </div>
+    <p id="myPauseTime">⏸️ あなたの残り: <span id="myPauseTimeLeft">2:00</span></p>
+    <p id="partnerPauseTime">⏸️ 相手の残り: <span id="partnerPauseTimeLeft">2:00</span></p>
   </div>
-  <div id="partnerPauseTime" style="margin-top: 5px;">
-    ⏸️ 相手の一時停止残り時間: <span id="partnerPauseTimeLeft">2:00</span>
-  </div>
 
+  <!-- 🎧 デバイス切り替え -->
+  <div class="card" style="max-width: 800px; margin: 2rem auto;">
     <h3>🎧 デバイス切り替え</h3>
     <label for="micSelect">🎤 マイク:</label>
-    <select id="micSelect"></select>
+    <select id="micSelect" class="input"></select>
 
-    <label for="speakerSelect">🔊 スピーカー:</label>
-    <select id="speakerSelect"></select>
+    <label for="speakerSelect" style="margin-top: 1rem;">🔊 スピーカー:</label>
+    <select id="speakerSelect" class="input"></select>
 
-    <p style="color: gray;">マイク・スピーカーは通話中でも切り替え可能です</p>
+    <div id="speakerVolumeControl" style="margin-top: 1rem;">
+      <label for="speakerVolume">🔊 スピーカー音量:</label>
+      <input type="range" id="speakerVolume" min="0" max="1" step="0.01" value="1">
+    </div>
 
+    <p class="text-sm" style="color: gray;">マイク・スピーカーは通話中でも切り替え可能です</p>
+  </div>
 
-  <!-- 終了ボタン -->
-  <button id="endCallBtn" disabled style="padding: 10px 20px; background-color: crimson; color: white; border: none; border-radius: 5px; font-size: 16px;">
-    通話を終了する
-  </button>
+  <!-- メモ・通報フォーム（非表示） -->
+  <div id="noteSection" class="card" style="display: none; max-width: 800px; margin: 2rem auto;">
+    <h3>📝 通話の振り返りメモ</h3>
+    <form id="noteForm" method="POST" action="/save-note">
+      <textarea name="note" rows="5" class="input" placeholder="気づきや改善点などを書いてね！"></textarea><br>
+      <input type="hidden" name="roomId" value="<%= roomId %>">
+      <input type="hidden" name="partnerId" value="<%= partner._id %>">
+      <button type="submit" class="btn btn-primary" style="margin-top: 0.5rem;">メモを保存する</button>
+    </form>
+    <button id="skipNoteBtn" class="btn btn-secondary" style="margin-top: 10px;">メモを残さず終了</button>
+
+   <form id="blockForm" method="POST" action="/block" onsubmit="return confirm('本当にこのユーザーをブロックしますか？')">
+      <input type="hidden" name="blockedUserId" value="<%= partner._id %>">
+
+      <label for="reason">通報理由:</label>
+      <select name="reason" id="reason" class="input" required>
+        <option value="" disabled selected>選んでください</option>
+        <option value="迷惑行為">迷惑行為</option>
+        <option value="不適切な言葉づかい">不適切な言葉づかい</option>
+        <option value="性的な発言">性的な発言</option>
+        <option value="暴力的な発言">暴力的な発言</option>
+        <option value="その他">その他</option>
+      </select><br>
+
+      <label for="details">詳細な理由（任意）:</label>
+      <textarea name="details" rows="3" class="input" placeholder="補足があれば書いてください"></textarea><br>
+
+      <button type="submit" class="btn btn-secondary" style="color: red; margin-top: 0.5rem;">🚫 通報・ブロックする</button>
+    </form>
+
+    
+
+  </div>
 
   <!-- 音声出力 -->
   <audio id="remoteAudio" autoplay></audio>
 
+  <!-- Socket.IO + JavaScript -->
   <script src="/socket.io/socket.io.js"></script>
 
   <script>
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const blockForm = document.getElementById('blockForm');
+      if (blockForm) blockForm.style.display = 'none';
+    });
 
     
     const socket = io();
@@ -141,6 +144,7 @@
     const noteSection = document.getElementById('noteSection');
     const statusEl = document.getElementById('status');
     const extendBtn = document.getElementById('extendBtn');
+    const pauseHint = document.getElementById('pauseHint');
 
   
     let remaining = 120;
@@ -156,6 +160,8 @@
       if (endCallBtn) endCallBtn.style.display = 'none';
       if (timerDisplay) timerDisplay.style.display = 'none';
       if (noteSection) noteSection.style.display = 'block';
+      if (pauseHint) pauseHint.remove();  
+      if (blockForm) blockForm.style.display = 'block';
   
 
       clearInterval(timerInterval);
@@ -172,18 +178,12 @@
       'pause-status',
       'micSelect',
       'speakerSelect',
-      'reason', // selectタグ
-      'details', // textareaタグ
       'speakerVolumeControl',
-      'pauseHint'
     ].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.style.display = 'none';
     });
 
-    // ブロックフォーム全体を非表示（formタグ）
-    const forms = document.querySelectorAll('form[action="/block"]');
-    forms.forEach(form => form.style.display = 'none');
 
     // 🎧 デバイス切り替え関連のラベルとテキストも非表示に
     const micLabel = document.querySelector('label[for="micSelect"]');
@@ -215,6 +215,8 @@
       }
 
       socket.emit('force-end', roomId);
+
+      fetch('/mark-ended', { method: 'POST' });
     }
 
 

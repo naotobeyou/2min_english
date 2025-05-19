@@ -99,3 +99,78 @@ a {
   object-fit: cover;
   border: 2px solid #4CAF93;
 }
+
+
+/* ==== 通話中画面↓ ==== */
+
+/* ==== ボリュームスライダー ==== */
+#speakerVolume {
+  width: 100%;
+  margin-top: 0.5rem;
+  accent-color: #4CAF93;
+}
+
+/* ==== noteSection メモ入力エリア ==== */
+#noteSection {
+  background-color: #fff;
+  border: 2px solid #4CAF93;
+  border-radius: 1rem;
+  padding: 1.5rem;
+  max-width: 700px;
+  margin: 2rem auto;
+}
+
+#noteSection textarea {
+  width: 100%;
+  border-radius: 0.5rem;
+  border: 1px solid #CCC;
+  padding: 0.75rem;
+  font-size: 1rem;
+  resize: vertical;
+}
+
+#noteSection button {
+  margin-top: 1rem;
+}
+
+/* ==== 通報・ブロックセクション ==== */
+#noteSection form[action="/block"] {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid #ccc;
+}
+
+#noteSection select,
+#noteSection textarea {
+  width: 100%;
+  margin-top: 0.5rem;
+  padding: 0.6rem 0.8rem;
+  font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 0.5rem;
+}
+
+/* ==== モバイル対応（任意） ==== */
+@media (max-width: 600px) {
+  .card {
+    padding: 1rem;
+  }
+
+  .btn {
+    width: 100%;
+    margin-top: 0.5rem;
+  }
+
+  .timer {
+    font-size: 1.5rem;
+  }
+
+  .avatar {
+    width: 48px;
+    height: 48px;
+  }
+
+  #noteSection {
+    padding: 1rem;
+  }
+}
