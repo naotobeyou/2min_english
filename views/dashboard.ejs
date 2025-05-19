@@ -2,95 +2,35 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>ダッシュボード</title>
+  <title>ダッシュボード | 2min English</title>
+  <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-  <h1>ようこそ、<%= user.username %> さん！</h1>
 
-  <img src="/uploads/<%= user.avatar %>" alt="プロフィール画像" width="120"><br>
+  <div class="card text-center" style="max-width: 500px; margin: 2rem auto;">
+    <h1 class="text-lg">ようこそ、<%= user.username %> さん！</h1>
+    <img src="/uploads/<%= user.avatar %>" alt="プロフィール画像" class="avatar" style="margin: 1rem auto;">
+    
+    <p><strong>英語レベル:</strong> <%= user.level %></p>
+    <p><strong>趣味:</strong> <%= user.hobbies %></p>
+    <p><strong>学習目的:</strong> <%= user.purpose %></p>
 
-  <p><strong>英語レベル:</strong> <%= user.level %></p>
-  <p><strong>趣味:</strong> <%= user.hobbies %></p>
-  <p><strong>学習目的:</strong> <%= user.purpose %></p>
+    <a href="/history" class="btn btn-secondary" style="margin-top: 1rem;">📜 メモ履歴を確認する</a>
+    <a href="/edit-profile" class="btn btn-secondary" style="margin-top: 0.5rem;">✏️ プロフィールを編集</a>
+    <a href="/settings" class="btn btn-secondary" style="margin-top: 0.5rem;">🎛️ 設定</a>
 
-  <a href="/history" style="display: inline-block; margin-top: 10px; padding: 10px 15px; background-color: #007BFF; color: white; border-radius: 5px; text-decoration: none;">
-    📜 メモ履歴を確認する
-  </a>
+    <form action="/matching-wait" method="GET" style="margin-top: 1rem;">
+      <button type="submit" class="btn btn-primary">🚀 マッチング開始</button>
+    </form>
 
-
-
-  <p><a href="/edit-profile">プロフィールを編集する</a></p>
-  <form action="/matching-wait" method="GET" style="display:inline;">
-    <button type="submit">マッチング開始</button>
-  </form>
-
-<p><a href="/settings">🎛️ 設定</a></p>
-
-  <a href="/logout">ログアウト</a>
-
+    <a href="/logout" class="btn btn-secondary" style="margin-top: 1rem;">ログアウト</a>
+  </div>
 
   <script>
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('blocked') === '1') {
       alert('✅ ユーザーをブロックしました');
     }
-
-    //音声デバイス設定
-
-      const micSelect = document.getElementById('micSelect');
-      const speakerSelect = document.getElementById('speakerSelect');
-      const deviceInfo = document.getElementById('deviceInfo');
-
-      async function loadAudioDevices() {
-        try {
-          const devices = await navigator.mediaDevices.enumerateDevices();
-          const audioInputs = devices.filter(d => d.kind === 'audioinput');
-          const audioOutputs = devices.filter(d => d.kind === 'audiooutput');
-
-          micSelect.innerHTML = '';
-          speakerSelect.innerHTML = '';
-
-          audioInputs.forEach(device => {
-            const option = document.createElement('option');
-            option.value = device.deviceId;
-            option.textContent = device.label || `マイク (${device.deviceId})`;
-            micSelect.appendChild(option);
-          });
-
-          audioOutputs.forEach(device => {
-            const option = document.createElement('option');
-            option.value = device.deviceId;
-            option.textContent = device.label || `スピーカー (${device.deviceId})`;
-            speakerSelect.appendChild(option);
-          });
-
-          // 保存された設定を選択
-          const savedMic = localStorage.getItem('preferredMic');
-          const savedSpeaker = localStorage.getItem('preferredSpeaker');
-          if (savedMic) micSelect.value = savedMic;
-          if (savedSpeaker && speakerSelect.querySelector(`[value="${savedSpeaker}"]`)) {
-            speakerSelect.value = savedSpeaker;
-          }
-
-          deviceInfo.textContent = 'デバイス選択はローカルに保存されます。次回の通話に反映されます。';
-        } catch (err) {
-          console.error('🎤 デバイス取得エラー:', err);
-          deviceInfo.textContent = 'デバイス情報の取得に失敗しました';
-        }
-      }
-
-      micSelect.addEventListener('change', () => {
-        localStorage.setItem('preferredMic', micSelect.value);
-      });
-
-      speakerSelect.addEventListener('change', () => {
-        localStorage.setItem('preferredSpeaker', speakerSelect.value);
-      });
-
-  // 初期化
-  loadAudioDevices();
-
-
   </script>
 
 </body>
