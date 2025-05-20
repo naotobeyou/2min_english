@@ -2,17 +2,28 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>ログイン</title>
+  <title>ログイン | 2min English</title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-  <h1>ログイン</h1>
-  <form action="/login" method="POST">
-    <input type="email" name="email" placeholder="メールアドレス" required><br>
-    <input type="password" name="password" placeholder="パスワード" required><br>
-    <button type="submit">ログイン</button>
-    <p><a href="/forgot-password">パスワードをお忘れですか？</a></p>
-    <p>アカウントをまだお持ちでない方は <a href="/register">こちらから新規登録</a></p>
-  </form>
+
+  <div class="card" style="max-width: 400px; margin: 4rem auto; text-align: center;">
+    <h1 class="text-lg">ログイン</h1>
+
+    <form action="/login" method="POST">
+      <input type="email" name="email" class="input" placeholder="メールアドレス" required style="margin-top: 1rem;"><br>
+      <input type="password" name="password" class="input" placeholder="パスワード" required style="margin-top: 1rem;"><br>
+
+      <button type="submit" class="btn btn-primary" style="margin-top: 1.5rem;">ログイン</button>
+    </form>
+
+    <p class="text-sm" style="margin-top: 1rem;">
+      <a href="/forgot-password">パスワードをお忘れですか？</a>
+    </p>
+    <p class="text-sm">
+      アカウント未登録の方は <a href="/register">新規登録</a>
+    </p>
+  </div>
+
 </body>
 </html>
