@@ -178,3 +178,34 @@ a {
     padding: 1rem;
   }
 }
+
+/* ==== cefr説明 ==== */
+.cefr-info-trigger {
+  color: #4CAF93;
+  text-decoration: underline;
+  cursor: pointer;
+  display: inline-block;
+}
+
+.popup {
+  position: absolute;
+  z-index: 10;
+  background-color: #fff;
+  border: 1px solid #ccc;
+  padding: 1rem;
+  font-size: 0.9rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  max-width: 300px;
+  line-height: 1.4;
+}
+
+.hidden {
+  display: none;
+}
+
+.text-sm {
+  font-size: 0.875rem;
+  margin-top: 0;
+  margin-bottom: 16px;
+}

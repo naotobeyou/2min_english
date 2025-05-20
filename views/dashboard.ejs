@@ -11,7 +11,24 @@
     <h1 class="text-lg">ようこそ、<%= user.username %> さん！</h1>
     <img src="/uploads/<%= user.avatar %>" alt="プロフィール画像" class="avatar" style="margin: 1rem auto;">
     
-    <p><strong>英語レベル:</strong> <%= user.level %></p>
+    <p style="margin-bottom: 0;"><strong>英語レベル(CEFR):</strong> <%= user.level %></p>
+
+    <p class="text-sm">
+      <span class="cefr-info-trigger" tabindex="0">CEFRとは？</span>
+    </p>
+
+      <div id="cefrPopup" class="popup hidden">
+        <strong>CEFRとは？</strong><br>
+        国際的な英語レベルの指標です。<br>
+        以下は各レベルの概略です。<br><br>
+        <strong>A1:</strong> ごく簡単な会話ができる(ミスはあっても)<br>
+        <strong>A2:</strong> 基本的な日常会話ができる(ミスはあっても)<br>
+        <strong>B1:</strong> 一般的な会話や仕事で使える(多少のミスはあっても)<br>
+        <strong>B2:</strong> 専門的な内容を含む議論が可能(多少のミスはあっても)<br>
+        <strong>C1:</strong> 複雑な議論・流暢な発言が可能<br>
+        <strong>C2:</strong> 母語話者に近い流暢さ・理解力
+      </div>
+
     <p><strong>趣味:</strong> <%= user.hobbies %></p>
     <p><strong>学習目的:</strong> <%= user.purpose %></p>
 
@@ -31,6 +48,51 @@
     if (urlParams.get('blocked') === '1') {
       alert('✅ ユーザーをブロックしました');
     }
+
+    const trigger = document.querySelector('.cefr-info-trigger');
+    const popup = document.getElementById('cefrPopup');
+
+    // モバイル＆PC対応
+    let popupVisible = false;
+
+    function togglePopup() {
+      popupVisible = !popupVisible;
+      popup.classList.toggle('hidden', !popupVisible);
+      if (popupVisible) {
+        const rect = trigger.getBoundingClientRect();
+        popup.style.top = `${window.scrollY + rect.bottom + 8}px`;
+        popup.style.left = `${rect.left}px`;
+      }
+    }
+
+    // PC: hover表示
+    trigger.addEventListener('mouseenter', () => {
+      if (window.innerWidth > 768) {
+        popup.classList.remove('hidden');
+        const rect = trigger.getBoundingClientRect();
+        popup.style.top = `${window.scrollY + rect.bottom + 8}px`;
+        popup.style.left = `${rect.left}px`;
+      }
+    });
+
+    trigger.addEventListener('mouseleave', () => {
+      if (window.innerWidth > 768) {
+        popup.classList.add('hidden');
+      }
+    });
+
+    // モバイル: タップで切替
+    trigger.addEventListener('click', togglePopup);
+
+    // 画面外タップで非表示にする
+    document.addEventListener('click', (e) => {
+      if (!trigger.contains(e.target) && !popup.contains(e.target)) {
+        popup.classList.add('hidden');
+        popupVisible = false;
+      }
+    });
+
+
   </script>
 
 </body>
