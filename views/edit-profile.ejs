@@ -1,26 +1,45 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>プロフィール編集</title>
+  <meta charset="UTF-8">
+  <title>プロフィール編集 | 2min English</title>
+  <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-  <h1>プロフィール編集</h1>
-  <form action="/edit-profile" method="POST" enctype="multipart/form-data">
-    <input type="text" name="username" value="<%= user.username %>" required minlength="3"><br>
-    <input type="text" name="hobbies" value="<%= user.hobbies %>" maxlength="200"> <br>
-    <input type="text" name="purpose" value="<%= user.purpose %>" maxlength="100"> <br>
-    <input type="password" name="currentPassword" placeholder="現在のパスワード"><br>
-    <input type="password" name="newPassword" placeholder="新しいパスワード"><br>
 
-    <p>現在の画像:</p>
-    <img src="/uploads/<%= user.avatar %>" alt="現在の画像" width="100"><br>
+  <div class="card" style="max-width: 600px; margin: 3rem auto;">
+    <h2 class="text-center">📝 プロフィール編集</h2>
 
-    <label>画像変更（任意）:</label>
-    <input type="file" name="avatar" accept="image/*"><br>
+    <form action="/edit-profile" method="POST" enctype="multipart/form-data">
 
-    <button type="submit">更新する</button>
-  </form>
+      <label for="username">ユーザー名:</label>
+      <input class="input" type="text" name="username" id="username" value="<%= user.username %>" required minlength="3">
 
-  <p><a href="/dashboard">← ダッシュボードに戻る</a></p>
+      <label for="hobbies">趣味:</label>
+      <input class="input" type="text" name="hobbies" id="hobbies" value="<%= user.hobbies %>" maxlength="200">
+
+      <label for="purpose">英語学習の目的:</label>
+      <input class="input" type="text" name="purpose" id="purpose" value="<%= user.purpose %>" maxlength="100">
+
+      <label for="currentPassword">現在のパスワード（変更する場合）:</label>
+      <input class="input" type="password" name="currentPassword" id="currentPassword">
+
+      <label for="newPassword">新しいパスワード:</label>
+      <input class="input" type="password" name="newPassword" id="newPassword">
+
+      <p style="margin-top: 1rem;"><strong>現在の画像:</strong></p>
+      <img src="/uploads/<%= user.avatar %>" alt="現在の画像" style="width: 100px; border-radius: 5px; border: 1px solid #ccc; margin-bottom: 1rem;">
+
+      <label for="avatar">画像変更（任意）:</label>
+      <input type="file" name="avatar" id="avatar" accept="image/*" style="margin-bottom: 1rem;">
+
+      <button type="submit" class="btn btn-primary" style="margin-top: 1rem;">更新する</button>
+    </form>
+
+    <p class="text-center" style="margin-top: 1.5rem;">
+      <a href="/dashboard" class="btn btn-secondary">← ダッシュボードに戻る</a>
+    </p>
+  </div>
+
 </body>
 </html>

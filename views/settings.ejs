@@ -2,24 +2,27 @@
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>設定ページ</title>
+  <title>設定 | 2min English</title>
   <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-  <h1>⚙️ 設定</h1>
-  <p>ようこそ、<%= user.username %> さん</p>
 
-  <h3>🎧 音声デバイス設定</h3>
+  <div class="card" style="max-width: 500px; margin: 4rem auto;">
+    <h2 class="text-center">⚙️ 設定</h2>
+    <p class="text-center text-sm" style="margin-bottom: 1rem;">ようこそ、<strong><%= user.username %></strong> さん</p>
 
-  <label for="micSelect">🎤 マイク選択:</label>
-  <select id="micSelect"></select><br>
+    <h3>🎧 音声デバイス設定</h3>
 
-  <label for="speakerSelect">🔊 スピーカー選択:</label>
-  <select id="speakerSelect"></select><br>
+    <label for="micSelect">🎤 マイク:</label>
+    <select id="micSelect" class="input" style="margin-bottom: 1rem;"></select>
 
-  <p id="deviceInfo" style="color: gray; margin-top: 5px;"></p>
+    <label for="speakerSelect">🔊 スピーカー:</label>
+    <select id="speakerSelect" class="input" style="margin-bottom: 1rem;"></select>
 
-  <a href="/dashboard">← ダッシュボードへ戻る</a>
+    <p id="deviceInfo" class="text-sm" style="color: gray; margin-top: 0.5rem;"></p>
+
+    <a href="/dashboard" class="btn btn-secondary" style="margin-top: 1.5rem;">← ダッシュボードへ戻る</a>
+  </div>
 
   <script>
     const micSelect = document.getElementById('micSelect');
@@ -51,12 +54,16 @@
 
         const savedMic = localStorage.getItem('preferredMic');
         const savedSpeaker = localStorage.getItem('preferredSpeaker');
-        if (savedMic) micSelect.value = savedMic;
+
+        if (savedMic && micSelect.querySelector(`[value="${savedMic}"]`)) {
+          micSelect.value = savedMic;
+        }
+
         if (savedSpeaker && speakerSelect.querySelector(`[value="${savedSpeaker}"]`)) {
           speakerSelect.value = savedSpeaker;
         }
 
-        deviceInfo.textContent = '設定はこのブラウザに保存されます。';
+        deviceInfo.textContent = 'この設定はこのブラウザに保存されます。';
       } catch (err) {
         console.error('🎤 デバイス取得エラー:', err);
         deviceInfo.textContent = 'デバイス情報の取得に失敗しました';
