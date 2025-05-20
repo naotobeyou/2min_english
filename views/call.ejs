@@ -392,13 +392,15 @@
 
             updateExtensionInfo(); 
 
+              extendBtn.textContent = '✅ 1分延長しました';  // ← 追加
+              extendBtn.disabled = true;   
+
             // extensionCount が 2 に達したときだけ非表示にする
             if (extensionCount >= 2) {
-                extendBtn.style.display = 'none';
+              extendBtn.style.display = 'none';
             } else {
-                extendBtn.style.display = 'inline-block';
-                extendBtn.disabled = true;
-                extendBtn.textContent = '相手の同意を待っています...';
+              extendBtn.style.display = 'inline-block';
+              // 次の残り30秒で再表示されるので、ここで何も上書きしない
             }
 
 
@@ -531,6 +533,18 @@
               socket.emit('pause-time-update', { roomId, remainingPauseTime });
             } else {
               clearInterval(pauseInterval);
+              timerPaused = false;
+
+              // 相手にも resume を通知（自動再開）
+              socket.emit('resume', roomId);
+
+              // UI更新（ボタンの表示など）
+              updatePauseStatusDisplay(null, false, false);
+              unlockPauseButton();
+              resumeBtn.style.display = 'none';
+              pauseBtn.style.display = 'inline-block';
+
+
             }
           }, 1000);
         }

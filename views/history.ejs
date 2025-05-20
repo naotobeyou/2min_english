@@ -3,27 +3,39 @@
 <head>
   <meta charset="UTF-8">
   <title>通話履歴</title>
+  <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-  <h1>📚 通話履歴</h1>
+  <div class="card" style="max-width: 800px; margin: 3rem auto;">
+    <h1 class="text-lg text-center">📚 通話履歴</h1>
 
-  <% if (histories.length === 0) { %>
-    <p>まだ通話履歴がありません。</p>
-  <% } else { %>
-    <% histories.forEach(entry => { %>
-       
-      <div style="border: 1px solid #ccc; padding: 15px; margin-bottom: 15px;">
-        <img src="/uploads/<%= entry.partnerId.avatar || 'default.png' %>" alt="プロフィール画像" width="100" height="100" style="border-radius: 50%;">
-        <p><strong>通話日時:</strong> <%= new Date(entry.createdAt).toLocaleString('ja-JP') %></p>
-        <p><strong>相手の名前:</strong> <%= entry.partnerId.username %></p>
-        <p><strong>英語レベル:</strong> <%= entry.partnerId.level %></p>
-        <p><strong>学習目的:</strong> <%= entry.partnerId.purpose || '未設定' %></p>
-        <p><strong>メモ内容:</strong><br><%= entry.note || '（メモなし）' %></p>
-       
-      </div>
-    <% }); %>
-  <% } %>
+    <% if (histories.length === 0) { %>
+      <p class="text-center" style="margin-top: 2rem;">まだ通話履歴がありません。</p>
+    <% } else { %>
+      <% histories.forEach(entry => { %>
+        <div class="card" style="margin: 1.5rem 0;">
+          <div style="display: flex; align-items: center;">
+            <img src="/uploads/<%= entry.partnerId.avatar || 'default.png' %>" alt="プロフィール画像" width="80" height="80" style="border-radius: 50%; margin-right: 1rem;">
+            <div>
+              <p><strong>通話日時:</strong> <%= new Date(entry.createdAt).toLocaleString('ja-JP') %></p>
+              <p><strong>相手の名前:</strong> <%= entry.partnerId.username %></p>
+              <p><strong>英語レベル:</strong> <%= entry.partnerId.level %></p>
+              <p><strong>学習目的:</strong> <%= entry.partnerId.purpose || '未設定' %></p>
+            </div>
+          </div>
+          <div style="margin-top: 1rem;">
+            <p><strong>📝 メモ内容:</strong></p>
+            <p style="white-space: pre-wrap; background-color: #f9f9f9; padding: 10px; border-radius: 6px;">
+              <%= entry.note || '（メモなし）' %>
+            </p>
+          </div>
+        </div>
+      <% }); %>
+    <% } %>
 
-  <a href="/dashboard">← ダッシュボードへ戻る</a>
+    <div class="text-center" style="margin-top: 2rem;">
+      <a href="/dashboard" class="btn btn-secondary">← ダッシュボードに戻る</a>
+    </div>
+  </div>
 </body>
 </html>
