@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>通話終了 | 2min English</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+
+  <div class="card" style="max-width: 700px; margin: 2rem auto;">
+    <h2 class="text-lg font-bold text-center">📞 通話を終了しました</h2>
+
+    <!-- 相手のプロフィール -->
+    <div class="text-center" style="margin-top: 1.5rem;">
+      <img class="avatar" src="/uploads/<%= partner.avatar || 'default.png' %>" alt="プロフィール画像">
+      <ul style="list-style: none; padding: 0; margin-top: 1rem;">
+        <li><strong>名前:</strong> <%= partner.username %></li>
+        <li><strong>英語レベル:</strong> <%= partner.level %></li>
+        <li><strong>学習目的:</strong> <%= partner.purpose || '未設定' %></li>
+        <li><strong>趣味:</strong> <%= partner.hobbies || '未設定' %></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- メモ入力セクション -->
+  <div id="noteSection">
+    <h3>📝 メモを残す</h3>
+    <form action="/save-note" method="POST">
+      <input type="hidden" name="roomId" value="<%= roomId %>">
+      <input type="hidden" name="partnerId" value="<%= partner._id %>">
+      <textarea name="note" rows="5" class="input" placeholder="通話の気づきや学んだことをメモしましょう！"></textarea>
+      <button class="btn btn-primary" type="submit">メモを保存</button>
+    </form>
+
+    <!-- ブロックフォーム -->
+    <form action="/block" method="POST" onsubmit="return confirm('本当にこのユーザーをブロックしますか？')">
+      <input type="hidden" name="blockedUserId" value="<%= partner._id %>">
+      <input type="hidden" name="roomId" value="<%= roomId %>">
+
+      <label for="reason">通報理由:</label>
+      <select name="reason" id="reason" class="input" required>
+        <option value="" disabled selected>選択してください</option>
+        <option value="迷惑行為">迷惑行為</option>
+        <option value="不適切な発言">不適切な発言</option>
+        <option value="無言">無言</option>
+        <option value="その他">その他</option>
+      </select>
+
+      <label for="details">詳細な理由（任意）:</label>
+      <textarea id="details" name="details" rows="3" class="input" placeholder="詳細があれば記入してください"></textarea>
+
+      <button class="btn btn-secondary" type="submit" style="color: red;">🚫 通報・ブロックする</button>
+    </form>
+  </div>
+
+  <!-- ダッシュボードに戻る -->
+  <div class="text-center" style="margin-top: 2rem;">
+    <a href="/dashboard">
+      <button class="btn btn-primary">ダッシュボードに戻る</button>
+    </a>
+  </div>
+
+</body>
+</html>

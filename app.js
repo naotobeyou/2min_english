@@ -6,6 +6,12 @@ const session = require('express-session');
 const bcrypt = require('bcryptjs'); 
 const CallHistory = require('./models/CallHistory');
 const blockRoutes = require('./routes/block');
+const Room = require('./models/Room');
+const User = require('./models/User');
+const MatchingEntry = require('./models/MatchingEntry');
+
+
+
 require('dotenv').config();
 
 const app = express();
@@ -26,6 +32,7 @@ app.use(session({
 
 
 
+
 // ミドルウェア設定
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static('public'));
@@ -37,9 +44,6 @@ mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('✅ MongoDB 接続成功！'))
   .catch((err) => console.error('❌ 接続エラー:', err));
 
-// モデル読み込み
-const User = require('./models/User');
-const MatchingEntry = require('./models/MatchingEntry');
 
 // 新規登録ページ表示
 app.get('/register', (req, res) => {
@@ -306,22 +310,10 @@ app.get('/history', async (req, res) => {
 app.get('/matching-wait', async (req, res) => {
   if (!req.session.userId) return res.redirect('/login');
 
-
- 
   const me = await User.findById(req.session.userId);
   if (!me) return res.send('ユーザーが見つかりません');
 
-   // 🔒 自分がブロックした相手のIDリストを取得
-   const blockedMe = await User.find({ blockedUsers: me._id }, '_id');
-   const blockedMeIds = blockedMe.map(user => user._id);
-
-   const allBlockedIds = [...(me.blockedUsers || []), ...blockedMeIds];
-
-  // 🔎 「自分以外」で「自分がブロックしていないユーザー」のみ取得
-  const others = await MatchingEntry.find({
-    userId: { $ne: me._id, $nin: allBlockedIds}
-  });
-
+  // 🔒 自分が既にMatchingEntryに登録されていないか確認
   const exists = await MatchingEntry.findOne({ userId: me._id });
   if (!exists) {
     await MatchingEntry.create({
@@ -331,23 +323,7 @@ app.get('/matching-wait', async (req, res) => {
     });
   }
 
-  let match = others.find(u => u.level === me.level && u.hobbies === me.hobbies);
-  if (!match) match = others.find(u => u.level === me.level);
-  if (!match) match = others.find(u => u.hobbies === me.hobbies);
-  if (!match && others.length > 0) match = others[0];
-
-  if (match) {
-    const roomId = `${me._id}-${match.userId}`;
-    const targetSocketId = userSockets.get(match.userId.toString());
-
-    if (targetSocketId) {
-      io.to(targetSocketId).emit('matched', roomId);
-    }
-
-    await MatchingEntry.deleteMany({ userId: { $in: [me._id, match.userId] } });
-    return res.redirect(`/call/${roomId}`);
-  }
-
+  // 👇マッチング処理はここでは行わず、待機画面を表示
   res.render('matching-wait', { user: me });
 });
 
@@ -364,26 +340,34 @@ app.post('/cancel-matching', async (req, res) => {
 app.get('/call/:roomId', async (req, res) => {
   if (!req.session.userId) return res.redirect('/login');
 
-    if (req.session.callEnded) {
-    req.session.callEnded = false; // リセット
-    return res.redirect('/dashboard');
+
+
+  try {
+    const room = await Room.findById(req.params.roomId).populate('user1 user2');
+    if (!room) return res.status(404).send('ルームが見つかりません');
+
+    const user = await User.findById(req.session.userId);
+    if (!user) return res.send('ユーザーが見つかりません');
+
+    // 相手を判定
+    const partner =
+      room.user1._id.toString() === user._id.toString()
+        ? room.user2
+        : room.user1;
+
+    if (!partner) return res.send('相手の情報が見つかりません');
+
+    res.render('call', {
+      roomId: room._id.toString(),
+      user,
+      partner
+    });
+  } catch (err) {
+    console.error('❌ /call エラー:', err);
+    res.status(500).send('通話ページの表示に失敗しました');
   }
-
-  const user = await User.findById(req.session.userId);
-  if (!user) return res.send('ユーザーが見つかりません');
-
-  const [id1, id2] = req.params.roomId.split('-');
-  const partnerId = (id1 === user._id.toString()) ? id2 : id1;
-  const partner = await User.findById(partnerId);
-
-  if (!partner) return res.send('相手の情報が見つかりません');
-
-  res.render('call', {
-    roomId: req.params.roomId,
-    user,
-    partner
-  });
 });
+
 
 
 //メモ・履歴保存
@@ -440,17 +424,100 @@ app.get('/settings', async (req, res) => {
 const passwordRoutes = require('./routes/password');
 app.use('/', passwordRoutes);
 
+//通話終了画面
+app.get('/end/:roomId', async (req, res) => {
+  const { roomId } = req.params;
+  const currentUserId = req.session.userId; // セッションに保存されている自分のID
+
+  try {
+    const room = await Room.findById(roomId).populate('user1 user2');
+    if (!room) return res.status(404).send('ルームが見つかりません');
+
+    const partner =
+      room.user1._id.toString() === currentUserId
+        ? room.user2
+        : room.user1;
+
+    res.render('end', {
+      partner,
+      roomId
+    });
+  } catch (err) {
+    console.error('❌ /end エラー:', err);
+    res.status(500).send('サーバーエラー');
+  }
+});
+
+
+
+
+
+
 
 
 // WebRTC用ルーム制御
 
 io.on('connection', (socket) => {
 
-  // ソケットIDとユーザーIDを紐づけ
-  socket.on('join-waiting', (userId) => {
+socket.on('join-waiting', async (userId) => {
+  try {
     console.log(`📡 ユーザー ${userId} が waiting に参加（socket: ${socket.id}）`);
     userSockets.set(userId, socket.id);
-  });
+
+    const me = await User.findById(userId);
+    if (!me) return;
+
+    // ブロック情報取得
+    const blockedMe = await User.find({ blockedUsers: me._id }, '_id');
+    const blockedMeIds = blockedMe.map(u => u._id.toString());
+    const allBlockedIds = [...(me.blockedUsers || []).map(String), ...blockedMeIds];
+
+    // 自分以外で、ブロック対象外のユーザーを検索
+    const others = await MatchingEntry.find({
+      userId: { $ne: me._id, $nin: allBlockedIds }
+    });
+
+    let match = others.find(u => u.level === me.level && u.hobbies === me.hobbies);
+    if (!match) match = others.find(u => u.level === me.level);
+    if (!match) match = others.find(u => u.hobbies === me.hobbies);
+    if (!match && others.length > 0) match = others[0];
+
+      if (match) {
+        const partnerSocketId = userSockets.get(match.userId.toString());
+
+        if (partnerSocketId) {
+          const newRoom = await Room.create({
+            user1: me._id,
+            user2: match.userId
+          });
+
+          const roomId = newRoom._id.toString();
+          io.to(socket.id).emit('matched', roomId);
+          io.to(partnerSocketId).emit('matched', roomId);
+
+          // ✅ 両者オンライン時のみ削除
+          await MatchingEntry.deleteMany({ userId: { $in: [me._id, match.userId] } });
+        } else {
+          console.log(`⚠️ 相手 ${match.userId} は未接続（partnerSocketIdなし）`);
+        }
+      }else {
+      const exists = await MatchingEntry.findOne({ userId: me._id });
+      if (!exists) {
+        await MatchingEntry.create({
+          userId: me._id,
+          level: me.level,
+          hobbies: me.hobbies
+        });
+      }
+    }
+  } catch (err) {
+    console.error('🛑 join-waiting 処理中にエラー:', err);
+    console.log("📊 マッチ候補:", match);
+    console.log("🧠 userSockets 状況:", Array.from(userSockets.entries()));
+  }
+});
+
+
 
   // 部屋に参加
   socket.on('join-room', (roomId) => {

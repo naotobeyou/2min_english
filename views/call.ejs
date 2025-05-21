@@ -7,18 +7,14 @@
 </head>
 
 <body>
-
-    <!-- 通話ルーム情報 -->
   <div class="card text-center" style="max-width: 800px; margin: 2rem auto;">
     <h1 class="text-lg">🗣️ 通話ルーム: <%= roomId %></h1>
     <p id="status">音声通話を準備中...</p>
-
     <div id="timer" class="timer">02:00</div>
     <p id="extensionInfo" class="text-sm">延長可能回数: 2回</p>
     <button id="extendBtn" class="btn btn-secondary" style="display: none;">延長する</button>
   </div>
 
-  <!-- 相手のプロフィール -->
   <div class="card" style="max-width: 800px; margin: 2rem auto;">
     <h2>👤 相手のプロフィール</h2>
     <img src="/uploads/<%= partner.avatar || 'default.png' %>" alt="プロフィール画像" class="avatar" style="width: 120px; height: 120px; margin-bottom: 1rem;">
@@ -30,7 +26,6 @@
     </ul>
   </div>
 
-  <!-- 話題カード -->
   <div class="card" style="max-width: 800px; margin: 2rem auto;" id="topicCardArea">
     <h3>💬 話題カード</h3>
     <select id="topicSelect" class="input">
@@ -46,16 +41,13 @@
     <p id="topicNotice" class="text-sm" style="color: gray; margin-top: 0.5rem;"></p>
   </div>
 
-  <!-- 一時停止・終了ボタン -->
   <div class="text-center" style="margin-top: 1rem;">
     <button id="pauseBtn" class="btn btn-secondary">⏸️ 一時停止</button>
     <p id="pauseHint" style="color: gray; margin-top: 5px;">↑調べものをするときに使ってね！</p>
     <button id="resumeBtn" class="btn btn-secondary" style="display:none;">▶️ 再開</button>
     <button id="endCallBtn" class="btn btn-primary" style="background-color: crimson;" disabled>通話を終了する</button>
-
   </div>
 
-  <!-- 残り時間表示 -->
   <div class="text-center" style="margin-top: 1rem;">
     <div id="pause-status" style="display: none;">
       <span id="pause-label" style="font-size: 1.2em;"></span>
@@ -64,7 +56,6 @@
     <p id="partnerPauseTime">⏸️ 相手の残り: <span id="partnerPauseTimeLeft">2:00</span></p>
   </div>
 
-  <!-- 🎧 デバイス切り替え -->
   <div class="card" style="max-width: 800px; margin: 2rem auto;">
     <h3>🎧 デバイス切り替え</h3>
     <label for="micSelect">🎤 マイク:</label>
@@ -81,153 +72,76 @@
     <p class="text-sm" style="color: gray;">マイク・スピーカーは通話中でも切り替え可能です</p>
   </div>
 
-  <!-- メモ・通報フォーム（非表示） -->
-  <div id="noteSection" class="card" style="display: none; max-width: 800px; margin: 2rem auto;">
-    <h3>📝 通話の振り返りメモ</h3>
-    <form id="noteForm" method="POST" action="/save-note">
-      <textarea name="note" rows="5" class="input" placeholder="気づきや改善点などを書いてね！"></textarea><br>
-      <input type="hidden" name="roomId" value="<%= roomId %>">
-      <input type="hidden" name="partnerId" value="<%= partner._id %>">
-      <button type="submit" class="btn btn-primary" style="margin-top: 0.5rem;">メモを保存する</button>
-    </form>
-    <button id="skipNoteBtn" class="btn btn-secondary" style="margin-top: 10px;">メモを残さず終了</button>
-
-   <form id="blockForm" method="POST" action="/block" onsubmit="return confirm('本当にこのユーザーをブロックしますか？')">
-      <input type="hidden" name="blockedUserId" value="<%= partner._id %>">
-
-      <label for="reason">通報理由:</label>
-      <select name="reason" id="reason" class="input" required>
-        <option value="" disabled selected>選んでください</option>
-        <option value="迷惑行為">迷惑行為</option>
-        <option value="不適切な言葉づかい">不適切な言葉づかい</option>
-        <option value="性的な発言">性的な発言</option>
-        <option value="暴力的な発言">暴力的な発言</option>
-        <option value="その他">その他</option>
-      </select><br>
-
-      <label for="details">詳細な理由（任意）:</label>
-      <textarea name="details" rows="3" class="input" placeholder="補足があれば書いてください"></textarea><br>
-
-      <button type="submit" class="btn btn-secondary" style="color: red; margin-top: 0.5rem;">🚫 通報・ブロックする</button>
-    </form>
-
-    
-
-  </div>
-
-  <!-- 音声出力 -->
   <audio id="remoteAudio" autoplay></audio>
-
-  <!-- Socket.IO + JavaScript -->
   <script src="/socket.io/socket.io.js"></script>
-
   <script>
-
-    window.addEventListener('DOMContentLoaded', () => {
-      const blockForm = document.getElementById('blockForm');
-      if (blockForm) blockForm.style.display = 'none';
-    });
-
-    
-    const socket = io();
     const roomId = "<%= roomId %>";
-    const userId = "<%= user._id %>";
-  
-    socket.emit('join-waiting', userId);
-  
-    const peer = new RTCPeerConnection({
-      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
-    });
-  
-    const endCallBtn = document.getElementById('endCallBtn');
-    const timerDisplay = document.getElementById('timer');
-    const noteSection = document.getElementById('noteSection');
-    const statusEl = document.getElementById('status');
-    const extendBtn = document.getElementById('extendBtn');
-    const pauseHint = document.getElementById('pauseHint');
 
-  
-    let remaining = 120;
-    let timerInterval;
-    
-  
-  
-    
-    function endCall() {
-      
-      // 表示を非表示に
-      if (statusEl) statusEl.style.display = 'none';
-      if (endCallBtn) endCallBtn.style.display = 'none';
-      if (timerDisplay) timerDisplay.style.display = 'none';
-      if (noteSection) noteSection.style.display = 'block';
-      if (pauseHint) pauseHint.remove();  
-      if (blockForm) blockForm.style.display = 'block';
-  
+    // ✅ 通話終了後、end画面に遷移
+    async function endCall() {
+      if (window.__callEnded) return; // 二重実行防止
+      window.__callEnded = true;
 
-      clearInterval(timerInterval);
-
-
-      [
-      'extensionInfo',
-      'extendBtn',
-      'topicCardArea',
-      'pauseBtn',
-      'resumeBtn',
-      'myPauseTime',
-      'partnerPauseTime',
-      'pause-status',
-      'micSelect',
-      'speakerSelect',
-      'speakerVolumeControl',
-    ].forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.style.display = 'none';
-    });
-
-
-    // 🎧 デバイス切り替え関連のラベルとテキストも非表示に
-    const micLabel = document.querySelector('label[for="micSelect"]');
-    const speakerLabel = document.querySelector('label[for="speakerSelect"]');
-
-    // 👇 すべての <p> を確認し、目的のテキストを含むものを非表示に
-    const allParagraphs = document.querySelectorAll('p');
-    allParagraphs.forEach(p => {
-      if (p.textContent.includes('マイク・スピーカー')) {
-        p.style.display = 'none';
-      }
-    });
-
-    if (micLabel) micLabel.style.display = 'none';
-    if (speakerLabel) speakerLabel.style.display = 'none';
-
-    // 🎧 デバイス切り替えタイトルも非表示
-    const deviceHeading = Array.from(document.getElementsByTagName('h3'))
-      .find(h => h.textContent.includes('デバイス切り替え'));
-    if (deviceHeading) deviceHeading.style.display = 'none';
-
-
-  
-      // 音声送信停止
+      // 音声トラック停止
       if (peer && peer.getSenders) {
         peer.getSenders().forEach(sender => {
           if (sender.track) sender.track.stop();
         });
       }
 
+      clearInterval(timerInterval);
       socket.emit('force-end', roomId);
 
-      fetch('/mark-ended', { method: 'POST' });
+      try {
+        await fetch('/mark-ended', { method: 'POST' });
+        window.location.href = `/end/${roomId}`;
+      } catch (err) {
+        console.error('❌ 通話終了時の fetch エラー:', err);
+        alert('通話終了に失敗しました。再読み込みしてください。');
+        window.location.href = '/dashboard';
+      }
     }
+        document.getElementById('endCallBtn').addEventListener('click', endCall);
 
+        const socket = io();
+    const userId = "<%= user._id %>";
+    socket.emit('join-waiting', userId);
 
-  
-    endCallBtn.addEventListener('click', endCall);
+    const peer = new RTCPeerConnection({
+      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+    });
 
-    let timerPaused = false; 
-  
+    const endCallBtn = document.getElementById('endCallBtn');
+    const statusEl = document.getElementById('status');
+    const timerDisplay = document.getElementById('timer');
+    const extendBtn = document.getElementById('extendBtn');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const resumeBtn = document.getElementById('resumeBtn');
+    const pauseHint = document.getElementById('pauseHint');
+    const topicSelect = document.getElementById('topicSelect');
+    const sendTopicBtn = document.getElementById('sendTopicBtn');
+    const topicDisplay = document.getElementById('topicDisplay');
+    const topicNotice = document.getElementById('topicNotice');
+    const micSelect = document.getElementById('micSelect');
+    const speakerSelect = document.getElementById('speakerSelect');
+    const speakerVolumeSlider = document.getElementById('speakerVolume');
+    const remoteAudio = document.getElementById('remoteAudio');
+
+    let currentStream;
+    let remaining = 120;
+    let timerInterval;
+    let extensionCount = 0;
+    let extensionRequested = false;
+    let extensionReceived = false;
+    let extensionApprovals = 0;
+    let timerPaused = false;
+    let remainingPauseTime = 120;
+    let pauseInterval;
+    let topicLock = false;
+
     function startTimer() {
       timerInterval = setInterval(() => {
-        if (timerPaused) return;  // ⏸️ 一時停止中は何もしない
+        if (timerPaused) return;
 
         const min = String(Math.floor(remaining / 60)).padStart(2, '0');
         const sec = String(remaining % 60).padStart(2, '0');
@@ -242,506 +156,293 @@
 
         if (remaining <= 0) {
           clearInterval(timerInterval);
-          if (statusEl) {
-            statusEl.textContent = '📝 通話時間が終了しました。メモを残しましょう！';
-            statusEl.style.color = 'black';
-          }
+          statusEl.textContent = '📝 通話時間が終了しました';
           endCall();
         }
 
         remaining--;
       }, 1000);
     }
-      
-    socket.on('matched', (roomId) => {
-      window.location.href = `/call/${roomId}`;
+
+    function updateExtensionInfo() {
+      const left = 2 - extensionCount;
+      document.getElementById('extensionInfo').textContent = `延長可能回数: ${left}回`;
+    }
+
+    function extendCall() {
+      extensionCount++;
+      remaining += 60;
+      updateExtensionInfo();
+      extendBtn.disabled = true;
+      extendBtn.textContent = '✅ 1分延長しました';
+      statusEl.textContent = '✅ 通話が1分延長されました';
+      statusEl.style.color = 'green';
+
+      if (extensionCount >= 2) {
+        extendBtn.style.display = 'none';
+      }
+
+      extensionRequested = false;
+      extensionReceived = false;
+    }
+
+    extendBtn.addEventListener('click', () => {
+      if (extensionCount >= 2) return;
+      extensionRequested = true;
+      extensionReceived = false;
+      extendBtn.disabled = true;
+      extendBtn.textContent = '相手の同意を待っています...';
+      socket.emit('request-extension', roomId);
+      if (extensionReceived) {
+        socket.emit('approve-extension', roomId);
+        extendCall();
+      }
     });
-  
+
+    socket.on('extension-requested', () => {
+      extensionReceived = true;
+      if (extensionRequested) {
+        socket.emit('approve-extension', roomId);
+      } else {
+        if (extensionCount < 2) {
+          extendBtn.style.display = 'inline-block';
+          extendBtn.disabled = false;
+          extendBtn.textContent = '通話相手が延長を希望しています';
+        }
+      }
+    });
+
+    socket.on('extension-approved', () => {
+      if (extensionApprovals >= extensionCount + 1) return;
+      extensionApprovals++;
+      extendCall();
+    });
+
+    // Pause/resume
+    function updatePauseStatusDisplay(userName, isSelfPaused, isOtherPaused) {
+      const label = document.getElementById('pause-label');
+      const status = document.getElementById('pause-status');
+      if (isSelfPaused) {
+        label.textContent = '⏸️ 一時停止中です';
+        status.style.display = 'block';
+      } else if (isOtherPaused) {
+        label.textContent = `⏸️ ${userName}さんが一時停止中です`;
+        status.style.display = 'block';
+      } else {
+        status.style.display = 'none';
+      }
+    }
+
+    function startPauseCountdown() {
+      pauseInterval = setInterval(() => {
+        if (remainingPauseTime > 0) {
+          remainingPauseTime--;
+          const m = Math.floor(remainingPauseTime / 60);
+          const s = remainingPauseTime % 60;
+          document.getElementById('myPauseTimeLeft').textContent = `${m}:${s.toString().padStart(2, '0')}`;
+          socket.emit('pause-time-update', { roomId, remainingPauseTime });
+        } else {
+          clearInterval(pauseInterval);
+          timerPaused = false;
+          socket.emit('resume', roomId);
+          updatePauseStatusDisplay(null, false, false);
+          resumeBtn.style.display = 'none';
+          pauseBtn.style.display = 'inline-block';
+        }
+      }, 1000);
+    }
+
+    pauseBtn.addEventListener('click', () => {
+      if (remainingPauseTime <= 0) return;
+      socket.emit('pause', { roomId, username: "<%= user.username %>" });
+      timerPaused = true;
+      updatePauseStatusDisplay(null, true, false);
+      startPauseCountdown();
+      pauseBtn.style.display = 'none';
+      resumeBtn.style.display = 'inline-block';
+    });
+
+    resumeBtn.addEventListener('click', () => {
+      socket.emit('resume', roomId);
+      timerPaused = false;
+      updatePauseStatusDisplay(null, false, false);
+      clearInterval(pauseInterval);
+      resumeBtn.style.display = 'none';
+      pauseBtn.style.display = 'inline-block';
+    });
+
+    socket.on('partner-paused', (name) => {
+      timerPaused = true;
+      updatePauseStatusDisplay(name, false, true);
+      pauseBtn.disabled = true;
+      resumeBtn.disabled = true;
+    });
+
+    socket.on('partner-resumed', () => {
+      timerPaused = false;
+      updatePauseStatusDisplay(null, false, false);
+      pauseBtn.disabled = false;
+    });
+
+    socket.on('pause-time-update', ({ remainingPauseTime }) => {
+      const m = Math.floor(remainingPauseTime / 60);
+      const s = remainingPauseTime % 60;
+      document.getElementById('partnerPauseTimeLeft').textContent = `${m}:${s.toString().padStart(2, '0')}`;
+    });
+
+    // Topic Card
+    sendTopicBtn.addEventListener('click', () => {
+      const selected = topicSelect.value;
+      if (!selected || topicLock) return;
+      socket.emit('topic-selected', { roomId, topic: selected });
+      topicDisplay.textContent = `💬 話題: ${selected}`;
+      topicNotice.textContent = `トピックの再選択は30秒後に可能です`;
+      lockTopicSelection();
+    });
+
+    socket.on('topic-selected', (topic) => {
+      topicDisplay.textContent = `💬 話題: ${topic}`;
+      if (!topicLock) {
+        topicNotice.innerHTML = '通話相手が以下のトピックを選びました！<br>再選択は30秒後に可能です';
+        lockTopicSelection();
+      }
+    });
+
+    function lockTopicSelection() {
+      topicLock = true;
+      sendTopicBtn.disabled = true;
+      topicSelect.disabled = true;
+      setTimeout(() => {
+        topicLock = false;
+        sendTopicBtn.disabled = false;
+        topicSelect.disabled = false;
+        topicNotice.textContent = '';
+      }, 30000);
+    }
+
+    // WebRTC
     navigator.mediaDevices.getUserMedia({ audio: true })
       .then(stream => {
         stream.getTracks().forEach(track => peer.addTrack(track, stream));
-  
         peer.ontrack = (event) => {
-          document.getElementById('remoteAudio').srcObject = event.streams[0];
-          if (statusEl) {
-            statusEl.textContent = '✅ 通話が始まりました！';
-            statusEl.style.color = 'green';
-            statusEl.style.fontWeight = 'bold';
-          }
-
-      
+          remoteAudio.srcObject = event.streams[0];
+          statusEl.textContent = '✅ 通話が始まりました！';
+          statusEl.style.color = 'green';
           endCallBtn.disabled = false;
           startTimer();
         };
-  
         socket.emit('join-room', roomId);
-  
         socket.on('ready', async () => {
           const offer = await peer.createOffer();
           await peer.setLocalDescription(offer);
           socket.emit('offer', roomId, offer);
         });
-  
         socket.on('offer', async (offer) => {
           await peer.setRemoteDescription(offer);
           const answer = await peer.createAnswer();
           await peer.setLocalDescription(answer);
           socket.emit('answer', roomId, answer);
         });
-  
         socket.on('answer', async (answer) => {
           await peer.setRemoteDescription(answer);
         });
-  
         socket.on('ice-candidate', async (candidate) => {
-          if (candidate) {
-            await peer.addIceCandidate(candidate);
-          }
+          if (candidate) await peer.addIceCandidate(candidate);
         });
-
-        socket.on('force-end', () => {
-            console.log("📴 相手が通話を終了したため、自分も終了します");
-            endCall(); // 自分側でも終了処理
-        });
-  
         peer.onicecandidate = (event) => {
-          if (event.candidate) {
-            socket.emit('ice-candidate', roomId, event.candidate);
-          }
+          if (event.candidate) socket.emit('ice-candidate', roomId, event.candidate);
         };
+        socket.on('force-end', () => {
+          endCall();
+        });
       })
       .catch(err => {
-        console.error("❌ マイク取得エラー:", err);
+        console.error("マイク取得失敗:", err);
       });
 
-
-
-      const topicSelect = document.getElementById('topicSelect');
-      const sendTopicBtn = document.getElementById('sendTopicBtn');
-      const topicDisplay = document.getElementById('topicDisplay');
-      let topicLock = false;
-
-      sendTopicBtn.addEventListener('click', () => {
-        const selectedTopic = topicSelect.value;
-        if (!selectedTopic || topicLock) return;
-
-        socket.emit('topic-selected', { roomId, topic: selectedTopic });
-        topicDisplay.textContent = `💬 話題: ${selectedTopic}`;
-        topicNotice.textContent = `トピックの再選択は30秒後に可能になります！`;
-        startTopicCountdownNotice(); 
-        lockTopicSelection();
-
-        setTimeout(() => {
-          topicNotice.textContent = '';
-        }, 30000);
-      });
-
-      // 相手から届いた話題も表示
-      socket.on('topic-selected', (topic) => {
-        topicDisplay.textContent = `💬 話題: ${topic}`;
-        if (!topicLock) {
-          lockTopicSelection();
-          startTopicCountdownNotice('通話相手が以下のトピックを選びました！<br>');
-        }
-      });
-
-
-
-      // 選択後30秒間ロック
-      function lockTopicSelection() {
-        topicLock = true;
-        sendTopicBtn.disabled = true;
-        topicSelect.disabled = true;
-        setTimeout(() => {
-          topicLock = false;
-          sendTopicBtn.disabled = false;
-          topicSelect.disabled = false;
-        }, 30000); // 30秒後に解除
-      }
-
-      function startTopicCountdownNotice(prefix = '') {
-        let secondsLeft = 30;
-        topicNotice.innerHTML = `
-          ${prefix}トピックの再選択は ${secondsLeft} 秒後に可能です。
-        `;
-        const topicTimer = setInterval(() => {
-          secondsLeft--;
-          if (secondsLeft <= 0) {
-            clearInterval(topicTimer);
-            topicNotice.textContent = '';
-          } else {
-            topicNotice.innerHTML = `
-              ${prefix}トピックの再選択は ${secondsLeft} 秒後に可能です。
-            `;
-          }
-        }, 1000);
-      }
-              
-
-        // 延長処理（60秒追加）
-        let extensionCount = 0; // ← 追加（合計延長回数を管理）
-        let isExtending = false;
-
-        function extendCall() {
-
-            isExtending = true;
-            console.log("🟩 extendCall() 実行！ 現在の extensionCount:", extensionCount);
-
-            extensionCount++;
-            remaining += 60;
-
-            updateExtensionInfo(); 
-
-              extendBtn.textContent = '✅ 1分延長しました';  // ← 追加
-              extendBtn.disabled = true;   
-
-            // extensionCount が 2 に達したときだけ非表示にする
-            if (extensionCount >= 2) {
-              extendBtn.style.display = 'none';
-            } else {
-              extendBtn.style.display = 'inline-block';
-              // 次の残り30秒で再表示されるので、ここで何も上書きしない
-            }
-
-
-            statusEl.textContent = '✅ 通話が1分延長されました';
-            statusEl.style.color = 'green';
-
-
-            extensionRequested = false;
-            extensionReceived = false;
-
-            setTimeout(() => {
-                isExtending = false;
-            }, 100);
-        }
-
-      document.getElementById('skipNoteBtn').addEventListener('click', () => {
-        if (confirm("メモを残さず終了しますか？")) {
-            window.location.href = '/dashboard';
-        }
-        });
-
-          //延長機能
-        let extensionAgreed = false;
-        let partnerAgreed = false;
-
-
-
-        let extensionRequested = false;
-        let extensionReceived = false;
-
-        extendBtn.addEventListener('click', () => {
-            if (extensionCount >= 2) return;
-
-            // 🧹 ここで毎回初期化（大事！）
-            extensionRequested = true;
-            extensionReceived = false;
-
-            extendBtn.disabled = true;
-            extendBtn.textContent = '相手の同意を待っています...';
-
-            socket.emit('request-extension', roomId);
-
-        if (extensionReceived) {
-            socket.emit('approve-extension', roomId); // 両方押したのでOK通知
-            extendCall();
-        }
-        });
-
-
-        // 相手から延長リクエストが届いた時
-        socket.on('extension-requested', () => {
-        extensionReceived = true;
-
-
-        if (extensionRequested) {
-            socket.emit('approve-extension', roomId);
-        } else {
-            if (extensionCount < 2) {
-            extendBtn.style.display = 'inline-block';
-            extendBtn.disabled = false;
-            extendBtn.textContent = '通話相手が延長を希望しています';
-            }
-        }
-        });
-
-        let extensionApprovals = 0;
-
-        socket.on('extension-approved', () => {
-        if (extensionApprovals >= extensionCount + 1) return;
-
-        console.log("📥 extension-approved 受信！ extensionApprovals:", extensionApprovals, "extensionCount:", extensionCount);
-        
-        extensionApprovals++;
-        extendCall();
-        });
-
-
-         // 延長回数表示（最大2回まで）
-        function updateExtensionInfo() {
-        const remaining = 2 - extensionCount;
-        document.getElementById('extensionInfo').textContent = `延長可能回数: ${remaining}回`;
-        }
-
-        updateExtensionInfo();
-
-
-        //一時停止制御
-        
-
-        socket.on('pause-time-update', ({ remainingPauseTime }) => {
-          const minutes = Math.floor(remainingPauseTime / 60);
-          const seconds = remainingPauseTime % 60;
-          document.getElementById('partnerPauseTimeLeft').textContent = 
-            `${minutes}:${seconds.toString().padStart(2, '0')}`;
-        });
-        
-        let isPaused = false;
-        let remainingPauseTime = 120; // 秒数（2分 = 120秒）
-        let pauseInterval;
-
-        function updatePauseStatusDisplay(userName, isSelfPaused, isOtherPaused) {
-          const pauseStatus = document.getElementById('pause-status');
-          const pauseLabel = document.getElementById('pause-label');
-        
-
-          if (isSelfPaused) {
-            pauseLabel.textContent = '⏸️ 一時停止中です';
-            pauseStatus.style.display = 'block';
-          } else if (isOtherPaused) {
-            pauseLabel.textContent = `⏸️ ${userName}さんは今一時停止中です`;
-            pauseStatus.style.display = 'block';
-          } else {
-            pauseStatus.style.display = 'none';
-          }
-        }
-
-        function startPauseCountdown() {
-          pauseInterval = setInterval(() => {
-            if (remainingPauseTime > 0) {
-              remainingPauseTime--;
-
-              const minutes = Math.floor(remainingPauseTime / 60);
-              const seconds = remainingPauseTime % 60;
-
-              // ✅ 表示されている自分のタイマーだけ更新
-              document.getElementById('myPauseTimeLeft').textContent =
-                `${minutes}:${seconds.toString().padStart(2, '0')}`;
-
-              // ✅ 相手にも送信
-              socket.emit('pause-time-update', { roomId, remainingPauseTime });
-            } else {
-              clearInterval(pauseInterval);
-              timerPaused = false;
-
-              // 相手にも resume を通知（自動再開）
-              socket.emit('resume', roomId);
-
-              // UI更新（ボタンの表示など）
-              updatePauseStatusDisplay(null, false, false);
-              unlockPauseButton();
-              resumeBtn.style.display = 'none';
-              pauseBtn.style.display = 'inline-block';
-
-
-            }
-          }, 1000);
-        }
-
-
-        function handlePauseStart() {
-          isPaused = true;
-          timerPaused = true;
-          updatePauseStatusDisplay(null, true, false);
-          startPauseCountdown();
-
-          pauseBtn.disabled = true;       // ⏸️ は押せないように
-          resumeBtn.disabled = false;     // ▶️ は有効にする
-        }
-
-        function handlePauseEnd() {
-          isPaused = false;
-          timerPaused = false;
-          updatePauseStatusDisplay(null, false, false);
-          clearInterval(pauseInterval);
-
-          resumeBtn.disabled = true;      // ▶️ を無効にして
-          if (remainingPauseTime > 0) {
-            pauseBtn.disabled = false;    // ⏸️ を再び有効に
-          }
-        }
-
-        socket.on('partner-paused', (partnerName) => {
-          updatePauseStatusDisplay(partnerName, false, true);
-        });
-
-        socket.on('partner-resumed', () => {
-          updatePauseStatusDisplay(null, false, false);
-        });
-
-        const pauseBtn = document.getElementById('pauseBtn');
-        const resumeBtn = document.getElementById('resumeBtn');
-
-        function lockPauseButton() {
-          pauseBtn.disabled = true;
-          resumeBtn.disabled = true;
-        }
-
-
-        function unlockPauseButton() {
-          if (remainingPauseTime > 0) {
-            pauseBtn.disabled = false;
-          }
-        }
-
-
-        socket.on('partner-paused', (partnerName) => {
-          timerPaused = true;
-          updatePauseStatusDisplay(partnerName, false, true);
-          lockPauseButton(); // ← 相手が一時停止中なので自分は押せない
-        });
-
-
-        socket.on('partner-resumed', () => {
-          timerPaused = false;
-          updatePauseStatusDisplay(null, false, false);
-          unlockPauseButton(); // ← 相手が解除したので自分も操作可能に
-        });
-
-
-
-        pauseBtn.addEventListener('click', () => {
-          if (remainingPauseTime <= 0) return;
-          socket.emit('pause', { roomId, username: "<%= user.username %>" });
-          handlePauseStart();
-          pauseBtn.style.display = 'none';
-          resumeBtn.style.display = 'inline-block';
-        });
-
-        resumeBtn.addEventListener('click', () => {
-          socket.emit('resume', roomId);
-          handlePauseEnd();
-          resumeBtn.style.display = 'none';
-          pauseBtn.style.display = 'inline-block';
-        });
-
-        function validateBlockForm() {
-          const reason = document.getElementById('reason');
-          if (!reason.value) {
-            alert("通報理由を選んでください。");
-            return false;
-          }
-          return true;
-        }
-
-  //オーディオ切り替え
-  const micSelect = document.getElementById('micSelect');
-  const speakerSelect = document.getElementById('speakerSelect');
-  const remoteAudio = document.getElementById('remoteAudio');
-  const speakerVolumeSlider = document.getElementById('speakerVolume');
-  
-  let currentStream;
-
-  async function initDeviceSelectors() {
-    try {
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const audioInputs = devices.filter(d => d.kind === 'audioinput');
-      const audioOutputs = devices.filter(d => d.kind === 'audiooutput');
-
-      micSelect.innerHTML = '';
-      speakerSelect.innerHTML = '';
-
-      audioInputs.forEach(device => {
-        const option = document.createElement('option');
-        option.value = device.deviceId;
-        option.textContent = device.label || `マイク (${device.deviceId})`;
-        micSelect.appendChild(option);
-      });
-
-      audioOutputs.forEach(device => {
-        const option = document.createElement('option');
-        option.value = device.deviceId;
-        option.textContent = device.label || `スピーカー (${device.deviceId})`;
-        speakerSelect.appendChild(option);
-      });
-
-      // 保存済みのものを選択
-      const savedMic = localStorage.getItem('preferredMic');
-      const savedSpeaker = localStorage.getItem('preferredSpeaker');
-      if (savedMic && micSelect.querySelector(`[value="${savedMic}"]`)) {
-        micSelect.value = savedMic;
-        await switchMic(savedMic); // 初回から反映
-      }
-      if (savedSpeaker && speakerSelect.querySelector(`[value="${savedSpeaker}"]`)) {
-        speakerSelect.value = savedSpeaker;
-        await switchSpeaker(savedSpeaker);
-      }
-    } catch (err) {
-      console.error("🎧 デバイス一覧の取得エラー:", err);
-    }
-  }
-
-  //音量調整
-    speakerVolumeSlider.addEventListener('input', () => {
-    remoteAudio.volume = parseFloat(speakerVolumeSlider.value);
-  });
-
-  // 🎤 マイク切り替え
-  async function switchMic(deviceId) {
-    try {
-      const newStream = await navigator.mediaDevices.getUserMedia({
-        audio: { deviceId: { exact: deviceId } }
-      });
-
-      const newAudioTrack = newStream.getAudioTracks()[0];
-      const sender = peer.getSenders().find(s => s.track.kind === 'audio');
-      if (sender) {
-        sender.replaceTrack(newAudioTrack);
-      }
-
-      // 古いストリーム停止
-      if (currentStream) {
-        currentStream.getTracks().forEach(t => t.stop());
-      }
-
-      currentStream = newStream;
-    } catch (err) {
-      console.error('🎤 マイク切り替えエラー:', err);
-    }
-  }
-
-  // 🔊 スピーカー切り替え
-  async function switchSpeaker(deviceId) {
-    if (typeof remoteAudio.setSinkId === 'function') {
+    // デバイス切り替え
+    async function initDeviceSelectors() {
       try {
-        await remoteAudio.setSinkId(deviceId);
-        console.log('🔊 スピーカー変更:', deviceId);
-      } catch (err) {
-        console.error('🔊 スピーカー切り替えエラー:', err);
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const audioInputs = devices.filter(d => d.kind === 'audioinput');
+        const audioOutputs = devices.filter(d => d.kind === 'audiooutput');
+
+        micSelect.innerHTML = '';
+        speakerSelect.innerHTML = '';
+
+        audioInputs.forEach(d => {
+          const opt = document.createElement('option');
+          opt.value = d.deviceId;
+          opt.textContent = d.label || `マイク (${d.deviceId})`;
+          micSelect.appendChild(opt);
+        });
+
+        audioOutputs.forEach(d => {
+          const opt = document.createElement('option');
+          opt.value = d.deviceId;
+          opt.textContent = d.label || `スピーカー (${d.deviceId})`;
+          speakerSelect.appendChild(opt);
+        });
+
+        const savedMic = localStorage.getItem('preferredMic');
+        const savedSpeaker = localStorage.getItem('preferredSpeaker');
+        if (savedMic) {
+          micSelect.value = savedMic;
+          await switchMic(savedMic);
+        }
+        if (savedSpeaker) {
+          speakerSelect.value = savedSpeaker;
+          await switchSpeaker(savedSpeaker);
+        }
+      } catch (e) {
+        console.error("デバイス取得失敗:", e);
       }
-    } else {
-      console.warn('setSinkId 未対応のブラウザです');
     }
-  }
 
-  micSelect.addEventListener('change', () => {
-    const selected = micSelect.value;
-    localStorage.setItem('preferredMic', selected);
-    switchMic(selected);
-  });
+    async function switchMic(deviceId) {
+      try {
+        const newStream = await navigator.mediaDevices.getUserMedia({
+          audio: { deviceId: { exact: deviceId } }
+        });
+        const newTrack = newStream.getAudioTracks()[0];
+        const sender = peer.getSenders().find(s => s.track.kind === 'audio');
+        if (sender) sender.replaceTrack(newTrack);
+        if (currentStream) currentStream.getTracks().forEach(t => t.stop());
+        currentStream = newStream;
+      } catch (e) {
+        console.error("マイク切替失敗:", e);
+      }
+    }
 
-  speakerSelect.addEventListener('change', () => {
-    const selected = speakerSelect.value;
-    localStorage.setItem('preferredSpeaker', selected);
-    switchSpeaker(selected);
-  });
+    async function switchSpeaker(deviceId) {
+      if (typeof remoteAudio.setSinkId === 'function') {
+        try {
+          await remoteAudio.setSinkId(deviceId);
+        } catch (e) {
+          console.error("スピーカー切替失敗:", e);
+        }
+      } else {
+        console.warn("setSinkId 非対応ブラウザ");
+      }
+    }
 
-  initDeviceSelectors();
+    micSelect.addEventListener('change', () => {
+      const selected = micSelect.value;
+      localStorage.setItem('preferredMic', selected);
+      switchMic(selected);
+    });
 
+    speakerSelect.addEventListener('change', () => {
+      const selected = speakerSelect.value;
+      localStorage.setItem('preferredSpeaker', selected);
+      switchSpeaker(selected);
+    });
 
+    speakerVolumeSlider.addEventListener('input', () => {
+      remoteAudio.volume = parseFloat(speakerVolumeSlider.value);
+    });
 
+    initDeviceSelectors();
   </script>
-  
 </body>
 </html>

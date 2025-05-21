@@ -209,3 +209,10 @@ a {
   margin-top: 0;
   margin-bottom: 16px;
 }
+
+/* end.ejsの安定性向上用 */
+#noteSection textarea.input,
+#noteSection select.input {
+  max-width: 100%;
+  box-sizing: border-box;
+}
