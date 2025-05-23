@@ -4,16 +4,17 @@
   <meta charset="UTF-8">
   <title>ダッシュボード | 2min English</title>
   <link rel="stylesheet" href="/css/style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
 <body>
 
-  <div class="card text-center" style="max-width: 500px; margin: 2rem auto;">
-    <h1 class="text-lg">ようこそ、<%= user.username %> さん！</h1>
-    <img src="/uploads/<%= user.avatar %>" alt="プロフィール画像" class="avatar" style="margin: 1rem auto;">
-    
-    <p style="margin-bottom: 0;"><strong>英語レベル(CEFR):</strong> <%= user.level %></p>
 
-    <p class="text-sm">
+ <div class="card text-center">
+    <h2 class="text-lg font-bold">ようこそ、<%= user.username %> さん！</h2>
+    <img src="/uploads/<%= user.avatar %>" alt="プロフィール画像" class="avatar" style="margin: 1rem auto;">
+    <p class="text-sm">現在の英語レベル：<%= user.level %></p>
+
+     <p class="text-sm">
       <span class="cefr-info-trigger" tabindex="0">CEFRとは？</span>
     </p>
 
@@ -29,19 +30,14 @@
         <strong>C2:</strong> 母語話者に近い流暢さ・理解力
       </div>
 
-    <p><strong>趣味:</strong> <%= user.hobbies %></p>
-    <p><strong>学習目的:</strong> <%= user.purpose %></p>
-
-    <a href="/history" class="btn btn-secondary" style="margin-top: 1rem;">📜 メモ履歴を確認する</a>
-    <a href="/edit-profile" class="btn btn-secondary" style="margin-top: 0.5rem;">✏️ プロフィールを編集</a>
-    <a href="/settings" class="btn btn-secondary" style="margin-top: 0.5rem;">🎛️ 設定</a>
-
-    <form action="/matching-wait" method="GET" style="margin-top: 1rem;">
-      <button type="submit" class="btn btn-primary">🚀 マッチング開始</button>
-    </form>
-
-    <a href="/logout" class="btn btn-secondary" style="margin-top: 1rem;">ログアウト</a>
-  </div>
+    <div class="btn-group">
+      <form action="/matching-wait" method="GET">
+        <button type="submit" class="btn btn-primary">マッチング開始</button>
+      </form>
+      <a href="/history" class="btn btn-secondary">履歴を見る</a>
+      <a href="/settings" class="btn btn-secondary">設定</a>
+      <a href="/logout" class="btn btn-secondary">ログアウト</a>
+    </div>
 
   <script>
     const urlParams = new URLSearchParams(window.location.search);

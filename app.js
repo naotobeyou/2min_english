@@ -35,9 +35,11 @@ app.use(session({
 
 // ミドルウェア設定
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json()); 
 app.use(express.static('public'));
 app.set('view engine', 'ejs');
 app.use('/block', blockRoutes);
+app.use(express.json()); 
 
 // MongoDB接続
 mongoose.connect(process.env.MONGODB_URI)
@@ -313,7 +315,17 @@ app.get('/matching-wait', async (req, res) => {
   const me = await User.findById(req.session.userId);
   if (!me) return res.send('ユーザーが見つかりません');
 
-  // 🔒 自分が既にMatchingEntryに登録されていないか確認
+  // ✅ 30分以上前に作られた ended:true の古い Room を削除
+  const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+  const result = await Room.deleteMany({
+    ended: true,
+    $or: [{ user1: me._id }, { user2: me._id }],
+    createdAt: { $lt: thirtyMinutesAgo }
+  });
+
+  console.log(`🧹 古いRoom削除数: ${result.deletedCount}`);
+
+  // ✅ マッチングエントリが未登録なら登録
   const exists = await MatchingEntry.findOne({ userId: me._id });
   if (!exists) {
     await MatchingEntry.create({
@@ -323,9 +335,10 @@ app.get('/matching-wait', async (req, res) => {
     });
   }
 
-  // 👇マッチング処理はここでは行わず、待機画面を表示
+  // ✅ 待機画面を表示（マッチング処理は Socket 側で処理）
   res.render('matching-wait', { user: me });
 });
+
 
 
 
@@ -338,9 +351,13 @@ app.post('/cancel-matching', async (req, res) => {
 
 //マッチング成立時
 app.get('/call/:roomId', async (req, res) => {
+
+    if (req.session.callEnded) {
+    req.session.callEnded = false; // セッションフラグをリセット
+    return res.redirect('/dashboard');
+  }
+
   if (!req.session.userId) return res.redirect('/login');
-
-
 
   try {
     const room = await Room.findById(req.params.roomId).populate('user1 user2');
@@ -403,9 +420,36 @@ function findPartnerSocket(roomId, mySocketId) {
 }
 
 // 通話終了フラグ
-app.post('/mark-ended', (req, res) => {
-  req.session.callEnded = true;
-  res.sendStatus(200);
+app.post('/mark-ended', async (req, res) => {
+  const roomId = req.body.roomId;
+  console.log('📥 /mark-ended POST受信:', req.body);
+
+  if (!roomId) {
+    console.error('❌ roomId が undefined（req.body.roomId）');
+    return res.status(400).send('roomId がありません');
+  }
+
+  try {
+    const result = await Room.updateOne(
+      { _id: roomId },
+      { $set: { ended: true } }
+    );
+    console.log('🛠️ Room.updateOne 結果:', result);
+
+    const updatedRoom = await Room.findById(roomId);
+    console.log('📝 更新後のRoom:', updatedRoom);
+
+    if (result.matchedCount === 0) {
+      console.warn(`⚠️ 該当する Room(${roomId}) が見つかりませんでした`);
+      return res.status(404).send('Room が存在しません');
+    }
+
+    console.log(`✅ Room ${roomId} を終了済みにマークしました`);
+    res.sendStatus(200);
+  } catch (err) {
+    console.error('❌ Room 終了マーク処理でエラー:', err);
+    res.status(500).send('通話終了フラグの更新に失敗しました');
+  }
 });
 
 
@@ -450,16 +494,28 @@ app.get('/end/:roomId', async (req, res) => {
 
 
 
-
-
-
-
-
 // WebRTC用ルーム制御
 
 io.on('connection', (socket) => {
 
 socket.on('join-waiting', async (userId) => {
+  // 🧾 全ルームをログ出力
+  const allRooms = await Room.find({});
+  console.log('🧾 現在の全ルーム一覧:');
+  allRooms.forEach(room => {
+    console.log(`🛋️ RoomID: ${room._id}`);
+    console.log(`   - user1: ${room.user1}`);
+    console.log(`   - user2: ${room.user2}`);
+    console.log(`   - ended: ${room.ended}`);
+    console.log(`   - createdAt: ${room.createdAt}`);
+  });
+
+  // 🧹 古い未終了Room削除
+  await Room.deleteMany({
+    ended: false,
+    createdAt: { $lt: new Date(Date.now() - 30 * 60 * 1000) }
+  });
+
   try {
     console.log(`📡 ユーザー ${userId} が waiting に参加（socket: ${socket.id}）`);
     userSockets.set(userId, socket.id);
@@ -467,12 +523,31 @@ socket.on('join-waiting', async (userId) => {
     const me = await User.findById(userId);
     if (!me) return;
 
-    // ブロック情報取得
+    // ✅ 終了済みルームのクリーンアップ
+    await Room.deleteMany({
+      ended: true,
+      $or: [{ user1: me._id }, { user2: me._id }]
+    });
+
+    // ✅ 未終了ルームチェック
+    const activeRoom = await Room.findOne({
+      ended: false,
+      $or: [{ user1: me._id }, { user2: me._id }]
+    });
+
+    if (activeRoom) {
+      console.warn(`🚫 ${userId} は既存のルーム ${activeRoom._id} に所属中（マッチング不可）`);
+      console.log('🪪 Room情報:', activeRoom);
+      return;
+    } else {
+      console.log(`✅ ${userId} は未所属でマッチング可能`);
+    }
+
+    // ブロック対象除外
     const blockedMe = await User.find({ blockedUsers: me._id }, '_id');
     const blockedMeIds = blockedMe.map(u => u._id.toString());
     const allBlockedIds = [...(me.blockedUsers || []).map(String), ...blockedMeIds];
 
-    // 自分以外で、ブロック対象外のユーザーを検索
     const others = await MatchingEntry.find({
       userId: { $ne: me._id, $nin: allBlockedIds }
     });
@@ -482,40 +557,51 @@ socket.on('join-waiting', async (userId) => {
     if (!match) match = others.find(u => u.hobbies === me.hobbies);
     if (!match && others.length > 0) match = others[0];
 
-      if (match) {
-        const partnerSocketId = userSockets.get(match.userId.toString());
+    if (match) {
+      const partnerSocketId = userSockets.get(match.userId.toString());
 
-        if (partnerSocketId) {
-          const newRoom = await Room.create({
-            user1: me._id,
-            user2: match.userId
-          });
-
-          const roomId = newRoom._id.toString();
-          io.to(socket.id).emit('matched', roomId);
-          io.to(partnerSocketId).emit('matched', roomId);
-
-          // ✅ 両者オンライン時のみ削除
-          await MatchingEntry.deleteMany({ userId: { $in: [me._id, match.userId] } });
-        } else {
-          console.log(`⚠️ 相手 ${match.userId} は未接続（partnerSocketIdなし）`);
-        }
-      }else {
-      const exists = await MatchingEntry.findOne({ userId: me._id });
-      if (!exists) {
-        await MatchingEntry.create({
-          userId: me._id,
-          level: me.level,
-          hobbies: me.hobbies
+      if (partnerSocketId) {
+        const newRoom = await Room.create({
+          user1: me._id,
+          user2: match.userId
         });
+
+        const roomId = newRoom._id.toString();
+        console.log(`🎯 マッチング成立！ ${me._id} ⇄ ${match.userId} → Room ${roomId}`);
+
+        io.to(socket.id).emit('matched', roomId);
+        io.to(partnerSocketId).emit('matched', roomId);
+
+        await MatchingEntry.deleteMany({ userId: { $in: [me._id, match.userId] } });
+      } else {
+        console.log(`⚠️ 相手 ${match.userId} は未接続（partnerSocketIdなし）`);
       }
+    } else {
+      // 🔁 MatchingEntryをupsertで登録
+      await MatchingEntry.updateOne(
+        { userId: me._id },
+        {
+          $setOnInsert: {
+            level: me.level,
+            hobbies: me.hobbies
+          }
+        },
+        { upsert: true }
+      );
     }
+
   } catch (err) {
     console.error('🛑 join-waiting 処理中にエラー:', err);
-    console.log("📊 マッチ候補:", match);
-    console.log("🧠 userSockets 状況:", Array.from(userSockets.entries()));
+
+    socket.emit('matching-error', {
+      message: 'マッチング中にエラーが発生しました。ページを再読み込みしてください。',
+      detail: err.message
+    });
   }
 });
+
+
+
 
 
 

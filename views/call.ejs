@@ -4,30 +4,36 @@
   <meta charset="UTF-8">
   <title>音声通話</title>
   <link rel="stylesheet" href="/css/style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
-
 <body>
-  <div class="card text-center" style="max-width: 800px; margin: 2rem auto;">
-    <h1 class="text-lg">🗣️ 通話ルーム: <%= roomId %></h1>
-    <p id="status">音声通話を準備中...</p>
-    <div id="timer" class="timer">02:00</div>
-    <p id="extensionInfo" class="text-sm">延長可能回数: 2回</p>
-    <button id="extendBtn" class="btn btn-secondary" style="display: none;">延長する</button>
+
+<div class="card call-card">
+
+  <!-- プロフィール＋タイマー -->
+  <div class="profile-timer-wrapper">
+    <!-- プロフィール左側 -->
+    <div class="profile-left">
+      <img src="/uploads/<%= partner.avatar || 'default.png' %>" class="avatar-large" alt="プロフィール画像">
+      <ul class="profile-list">
+        <li><strong>名前:</strong> <%= partner.username %></li>
+        <li><strong>趣味:</strong> <%= partner.hobbies || '未設定' %></li>
+        <li><strong>目的:</strong> <%= partner.purpose || '未設定' %></li>
+        <li><strong>英語レベル:</strong> <%= partner.level %></li>
+      </ul>
+    </div>
+
+    <!-- タイマーとステータス右側 -->
+    <div class="timer-right">
+      <p id="status">音声通話を準備中...</p>
+      <div id="timer" class="timer">02:00</div>
+      <p id="extensionInfo" class="text-sm">延長可能回数: 2回</p>
+      <button id="extendBtn" class="btn btn-secondary" style="display: none;">延長する</button>
+    </div>
   </div>
 
-  <div class="card" style="max-width: 800px; margin: 2rem auto;">
-    <h2>👤 相手のプロフィール</h2>
-    <img src="/uploads/<%= partner.avatar || 'default.png' %>" alt="プロフィール画像" class="avatar" style="width: 120px; height: 120px; margin-bottom: 1rem;">
-    <ul style="list-style: none; padding: 0;">
-      <li><strong>名前:</strong> <%= partner.username %></li>
-      <li><strong>趣味:</strong> <%= partner.hobbies || '未設定' %></li>
-      <li><strong>目的:</strong> <%= partner.purpose || '未設定' %></li>
-      <li><strong>英語レベル:</strong> <%= partner.level %></li>
-    </ul>
-  </div>
-
-  <div class="card" style="max-width: 800px; margin: 2rem auto;" id="topicCardArea">
-    <h3>💬 話題カード</h3>
+  <!-- 話題カード -->
+  <div class="topic-card">
     <select id="topicSelect" class="input">
       <option value="">-- 話題を選んでください --</option>
       <option value="週末は何をして過ごすのが好き？">週末は何をして過ごすのが好き？</option>
@@ -36,71 +42,78 @@
       <option value="もしどこでも住めるなら、どこを選ぶ？">もしどこでも住めるなら、どこを選ぶ？</option>
       <option value="子どものころの夢は？">子どものころの夢は？</option>
     </select>
-    <button id="sendTopicBtn" class="btn btn-secondary" style="margin-top: 0.5rem;">この話題にする</button>
-    <p id="topicDisplay" class="text-lg" style="margin-top: 1rem; font-weight: bold;"></p>
-    <p id="topicNotice" class="text-sm" style="color: gray; margin-top: 0.5rem;"></p>
+    <button id="sendTopicBtn" class="btn btn-secondary">この話題にする</button>
+    <p id="topicDisplay" class="text-lg bold"></p>
+    <p id="topicNotice" class="text-sm gray"></p>
   </div>
 
-  <div class="text-center" style="margin-top: 1rem;">
+  <!-- ボタン類 -->
+  <div class="control-buttons">
     <button id="pauseBtn" class="btn btn-secondary">⏸️ 一時停止</button>
-    <p id="pauseHint" style="color: gray; margin-top: 5px;">↑調べものをするときに使ってね！</p>
     <button id="resumeBtn" class="btn btn-secondary" style="display:none;">▶️ 再開</button>
-    <button id="endCallBtn" class="btn btn-primary" style="background-color: crimson;" disabled>通話を終了する</button>
+    <button id="endCallBtn" class="btn btn-primary end-btn" disabled>通話を終了する</button>
   </div>
 
-  <div class="text-center" style="margin-top: 1rem;">
-    <div id="pause-status" style="display: none;">
-      <span id="pause-label" style="font-size: 1.2em;"></span>
-    </div>
+  <!-- 残り時間 -->
+  <div class="pause-info">
+    <div id="pause-status"><span id="pause-label"></span></div>
     <p id="myPauseTime">⏸️ あなたの残り: <span id="myPauseTimeLeft">2:00</span></p>
     <p id="partnerPauseTime">⏸️ 相手の残り: <span id="partnerPauseTimeLeft">2:00</span></p>
   </div>
 
-  <div class="card" style="max-width: 800px; margin: 2rem auto;">
-    <h3>🎧 デバイス切り替え</h3>
-    <label for="micSelect">🎤 マイク:</label>
-    <select id="micSelect" class="input"></select>
+</div>
 
-    <label for="speakerSelect" style="margin-top: 1rem;">🔊 スピーカー:</label>
-    <select id="speakerSelect" class="input"></select>
 
-    <div id="speakerVolumeControl" style="margin-top: 1rem;">
-      <label for="speakerVolume">🔊 スピーカー音量:</label>
-      <input type="range" id="speakerVolume" min="0" max="1" step="0.01" value="1">
-    </div>
 
-    <p class="text-sm" style="color: gray;">マイク・スピーカーは通話中でも切り替え可能です</p>
-  </div>
 
-  <audio id="remoteAudio" autoplay></audio>
-  <script src="/socket.io/socket.io.js"></script>
+<audio id="remoteAudio" autoplay></audio>
+<script src="/socket.io/socket.io.js"></script>
+
+  <script src="/js/call.js"></script>
   <script>
     const roomId = "<%= roomId %>";
 
     // ✅ 通話終了後、end画面に遷移
-    async function endCall() {
-      if (window.__callEnded) return; // 二重実行防止
-      window.__callEnded = true;
+async function endCall() {
 
-      // 音声トラック停止
-      if (peer && peer.getSenders) {
-        peer.getSenders().forEach(sender => {
-          if (sender.track) sender.track.stop();
-        });
-      }
 
-      clearInterval(timerInterval);
-      socket.emit('force-end', roomId);
+  if (window.__callEnded) return;
+  window.__callEnded = true;
+  console.log('▶️ 通話終了処理を開始');
 
-      try {
-        await fetch('/mark-ended', { method: 'POST' });
-        window.location.href = `/end/${roomId}`;
-      } catch (err) {
-        console.error('❌ 通話終了時の fetch エラー:', err);
-        alert('通話終了に失敗しました。再読み込みしてください。');
-        window.location.href = '/dashboard';
-      }
+  // 音声トラック停止
+  if (peer?.getSenders) {
+    try {
+      peer.getSenders().forEach(sender => {
+        sender.track?.stop();
+      });
+    } catch (e) {
+      console.warn("音声トラック停止中に例外:", e);
     }
+  }
+
+  clearInterval(timerInterval);
+  socket.emit('force-end', roomId);
+
+  try {
+    const response = await fetch('/mark-ended', {
+      
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ roomId })
+    });
+
+    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    console.log(`✅ /mark-ended 成功：Room ${roomId} 終了マーク完了`);
+
+    window.location.href = `/end/${roomId}`;
+  } catch (err) {
+    console.error('❌ /mark-ended 通信エラー:', err);
+    alert('通話の終了処理に失敗しました。ダッシュボードに戻ります。');
+    window.location.href = '/dashboard';
+  }
+}
+
         document.getElementById('endCallBtn').addEventListener('click', endCall);
 
         const socket = io();
@@ -325,6 +338,14 @@
       .then(stream => {
         stream.getTracks().forEach(track => peer.addTrack(track, stream));
         peer.ontrack = (event) => {
+          setTimeout(() => {
+            if (!remoteAudio.srcObject || remoteAudio.srcObject.getAudioTracks().length === 0) {
+              alert("相手の接続が確認できませんでした。ダッシュボードに戻ります。");
+              window.location.href = "/dashboard";
+            }
+          }, 15000);
+
+
           remoteAudio.srcObject = event.streams[0];
           statusEl.textContent = '✅ 通話が始まりました！';
           statusEl.style.color = 'green';
@@ -443,6 +464,28 @@
     });
 
     initDeviceSelectors();
+
+    socket.on('matching-error', (data) => {
+      alert(data.message || '予期せぬエラーが発生しました');
+      console.error('📛 サーバーエラー詳細:', data.detail);
+    });
+
+      // ✅ ページ離脱時にも /mark-ended を送信（通話が終了済みでない場合）
+  window.addEventListener('beforeunload', async (e) => {
+    if (!window.__callEnded) {
+      try {
+        await fetch('/mark-ended', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ roomId })
+        });
+        console.log('📤 beforeunload: /mark-ended 成功');
+      } catch (err) {
+        console.warn('⚠️ beforeunload: /mark-ended エラー:', err);
+      }
+    }
+  });
+
   </script>
 </body>
 </html>

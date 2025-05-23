@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <title>マッチング待機中</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
     body {
       text-align: center;
@@ -66,5 +67,13 @@
   <form action="/cancel-matching" method="POST">
     <button type="submit">キャンセル</button>
   </form>
+
+  <script>
+    socket.on('matching-error', (data) => {
+      alert(data.message || '予期せぬエラーが発生しました');
+      console.error('📛 サーバーエラー詳細:', data.detail);
+    });
+  </script>
+
 </body>
 </html>

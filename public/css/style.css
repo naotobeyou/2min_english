@@ -66,6 +66,7 @@ a {
   border: 1px solid #CCC;
   background-color: white;
   font-size: 1rem;
+  box-sizing: border-box;
   transition: border-color 0.2s ease;
 }
 
@@ -74,15 +75,16 @@ a {
   border-color: #4CAF93;
 }
 
-/* ==== 汎用ユーティリティクラス ==== */
+/* ==== 汎用ユーティリティ ==== */
 .text-center { text-align: center; }
-.text-sm { font-size: 0.875rem; }
+.text-sm { font-size: 0.875rem; margin-bottom: 16px; }
 .text-lg { font-size: 1.25rem; }
 .font-bold { font-weight: bold; }
 .rounded-full { border-radius: 9999px; }
 .shadow-sm { box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
 
-/* ==== タイマー表示例 ==== */
+
+/* ==== タイマー表示 ==== */
 .timer {
   font-size: 2rem;
   font-weight: bold;
@@ -91,7 +93,7 @@ a {
   color: #4CAF93;
 }
 
-/* ==== アバター表示 ==== */
+/* ==== アバター ==== */
 .avatar {
   width: 64px;
   height: 64px;
@@ -100,21 +102,16 @@ a {
   border: 2px solid #4CAF93;
 }
 
-/* ==== ログイン画面 ==== */
-.input {
-  box-sizing: border-box; /* ← これを追加 */
+.avatar-large {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #4CAF93;
+  margin-bottom: 1rem;
 }
 
-/* ==== 通話中画面↓ ==== */
-
-/* ==== ボリュームスライダー ==== */
-#speakerVolume {
-  width: 100%;
-  margin-top: 0.5rem;
-  accent-color: #4CAF93;
-}
-
-/* ==== noteSection メモ入力エリア ==== */
+/* ==== noteSection（メモ・ブロック） ==== */
 #noteSection {
   background-color: #fff;
   border: 2px solid #4CAF93;
@@ -124,12 +121,15 @@ a {
   margin: 2rem auto;
 }
 
-#noteSection textarea {
+#noteSection textarea,
+#noteSection select {
   width: 100%;
-  border-radius: 0.5rem;
-  border: 1px solid #CCC;
-  padding: 0.75rem;
+  margin-top: 0.5rem;
+  padding: 0.6rem 0.8rem;
   font-size: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 0.5rem;
+  box-sizing: border-box;
   resize: vertical;
 }
 
@@ -137,28 +137,24 @@ a {
   margin-top: 1rem;
 }
 
-/* ==== 通報・ブロックセクション ==== */
 #noteSection form[action="/block"] {
   margin-top: 2rem;
   padding-top: 1rem;
   border-top: 1px solid #ccc;
 }
 
-#noteSection select,
-#noteSection textarea {
-  width: 100%;
-  margin-top: 0.5rem;
-  padding: 0.6rem 0.8rem;
-  font-size: 1rem;
-  border: 1px solid #ccc;
-  border-radius: 0.5rem;
-}
-
-/* ==== モバイル対応（任意） ==== */
+/* ==== モバイル対応（共通） ==== */
 @media (max-width: 600px) {
   .card {
     padding: 1rem;
   }
+
+  .call-card {
+  padding: 1rem; /* スマホで余白を詰めつつ見切れないように */
+  margin: 1rem;
+  }
+
+  
 
   .btn {
     width: 100%;
@@ -177,9 +173,19 @@ a {
   #noteSection {
     padding: 1rem;
   }
+
+  .control-buttons {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .control-buttons button {
+    width: 100%;
+    max-width: 240px;
+  }
 }
 
-/* ==== cefr説明 ==== */
+/* ==== CEFR説明ポップアップ ==== */
 .cefr-info-trigger {
   color: #4CAF93;
   text-decoration: underline;
@@ -204,15 +210,192 @@ a {
   display: none;
 }
 
-.text-sm {
-  font-size: 0.875rem;
-  margin-top: 0;
-  margin-bottom: 16px;
+
+/* ==== 通話画面全体レイアウト ==== */
+.call-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-/* end.ejsの安定性向上用 */
-#noteSection textarea.input,
-#noteSection select.input {
+.call-card {
+  width: 100%;
+  max-width: 900px;
+  margin: 2rem auto;
+  padding: 1.5rem;
+  background-color: #ffffff;
+  border-radius: 1rem;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+  box-sizing: border-box; 
+}
+
+/* ==== プロフィール＆タイマーエリア ==== */
+.profile-timer-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+  margin-bottom: 2rem;
+}
+
+.profile-left {
+  flex: 1;
+  min-width: 250px;
+}
+
+.timer-right {
+  flex: 1;
+  min-width: 250px;
+  text-align: center;
+}
+
+.status-text {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #4CAF93;
+  margin-bottom: 0.5rem;
+}
+
+.profile-list {
+  list-style: none;
+  padding: 0;
+  font-size: 0.95rem;
+}
+
+/* ==== 話題カード ==== */
+.topic-card {
+  text-align: center;
+  margin-top: 1rem;
+}
+
+.topic-card select {
   max-width: 100%;
+  margin-top: 0.5rem;
+}
+
+#topicDisplay {
+  margin-top: 1rem;
+  font-weight: bold;
+}
+
+#topicNotice {
+  color: gray;
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+}
+
+/* ==== ボタン群 ==== */
+.control-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-top: 1.5rem;
+  text-align: center;
+}
+
+/* ==== 残り時間表示 ==== */
+.pause-info {
+  text-align: center;
+  margin-top: 1rem;
+}
+
+#pause-status {
+  font-weight: bold;
+  color: #d32f2f;
+  margin-bottom: 0.5rem;
+}
+
+/* ==== モバイル対応 ==== */
+@media (max-width: 768px) {
+  .profile-timer-wrapper {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .control-buttons {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .control-buttons button {
+    width: 100%;
+    max-width: 240px;
+  }
+}
+
+
+/* ==== モバイル表示改善 ==== */
+@media (max-width: 600px) {
+  body {
+    font-size: 1rem;
+    padding: 0.5rem;
+  }
+
+  .card {
+    width: 100%;
+    padding: 1rem;
+    margin: 1rem auto;
+    box-sizing: border-box;
+  }
+
+  .input,
+  input,
+  textarea,
+  select {
+    width: 100%;
+    font-size: 1rem;
+    padding: 0.75rem;
+    box-sizing: border-box;
+  }
+
+  .btn {
+    width: 100%;
+    max-width: 100%;
+    font-size: 1rem;
+    padding: 0.75rem 1rem;
+  }
+
+  h1, h2, h3 {
+    font-size: 1.25rem;
+    text-align: center;
+  }
+
+  ul {
+    padding-left: 1rem;
+  }
+
+  .avatar {
+    width: 60px;
+    height: 60px;
+  }
+}
+
+.btn-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.btn-group .btn {
+  width: 100%;
   box-sizing: border-box;
+}
+
+@media (min-width: 768px) {
+  .btn-group {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .btn-group .btn {
+    max-width: 240px;
+  }
 }
